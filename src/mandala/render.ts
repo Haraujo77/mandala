@@ -69,18 +69,7 @@ function drawBackground(
   width: number,
   height: number,
 ) {
-  const g = ctx.createRadialGradient(
-    width / 2,
-    height / 2,
-    0,
-    width / 2,
-    height / 2,
-    Math.max(width, height) * 0.72,
-  );
-  g.addColorStop(0, "#0c1228");
-  g.addColorStop(0.55, "#070a16");
-  g.addColorStop(1, "#02030a");
-  ctx.fillStyle = g;
+  ctx.fillStyle = "#000000";
   ctx.fillRect(0, 0, width, height);
 }
 
