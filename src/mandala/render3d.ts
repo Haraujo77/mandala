@@ -111,11 +111,15 @@ export function renderSphere(
 
   const pts = hemispherePoints(n);
 
-  const spin = animate ? time * 0.28 : 0.7;
+  const spin = animate ? time * 0.12 : 0.7;
   const cosS = Math.cos(spin);
   const sinS = Math.sin(spin);
-  const cosT = Math.cos(TILT);
-  const sinT = Math.sin(TILT);
+  // Subtle camera "nod": slowly rock the tilt so the dome's curvature reads via
+  // the kinetic-depth effect (motion parallax) — much more legible than spin
+  // alone, while staying calm.
+  const tilt = TILT + (animate ? Math.sin(time * 0.3) * 0.14 : 0);
+  const cosT = Math.cos(tilt);
+  const sinT = Math.sin(tilt);
 
   // Orthographic projection (parallel rays): position maps linearly and dots
   // keep their size regardless of depth. Depth is kept only for sorting.

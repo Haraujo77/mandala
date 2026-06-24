@@ -260,7 +260,7 @@ function hslToRgb(h: number, s: number, l: number): Rgb {
 export const GHOST_RGB: Rgb = hslToRgb(206, 0.32, 0.62);
 
 /** Default off-slot color as a hex string (for state/URL/UI defaults). */
-export const DEFAULT_OFF_COLOR: string = rgbToHex(GHOST_RGB);
+export const DEFAULT_OFF_COLOR = "#222222";
 
 /** Default color for tier rings + labels (distinct, warm gold). */
 export const DEFAULT_TIER_COLOR = "#e8c45a";

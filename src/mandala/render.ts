@@ -206,7 +206,7 @@ export function renderMandala(
   const cy = height / 2;
   const S = Math.min(width, height) / 2;
 
-  const rotation = animate ? time * 0.03 : 0;
+  const rotation = animate ? time * 0.016 : 0;
   const breathe = animate ? 1 + Math.sin(time * 0.7) * 0.012 : 1;
   const pulse = animate ? (Math.sin(time * 1.5) + 1) / 2 : 0.5;
   const visibleCount = slots.length;

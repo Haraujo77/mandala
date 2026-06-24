@@ -124,9 +124,10 @@ function readStateFromUrl(): AppState {
   const offColor =
     /^[0-9a-fA-F]{6}$/.test(rawOff) ? `#${rawOff.toLowerCase()}` : DEFAULTS.offColor;
 
+  // Opaque off slots default ON in 3D (occlusion reads better) and OFF in 2D.
   const opaqueOff = params.has("opaque")
     ? params.get("opaque") === "1"
-    : DEFAULTS.opaqueOff;
+    : mode === "3d";
 
   const showConnectors = params.has("links")
     ? params.get("links") === "1"
@@ -212,7 +213,7 @@ function writeStateToUrl(state: AppState) {
   if (state.offColor !== DEFAULTS.offColor) {
     params.set("off", state.offColor.replace(/^#/, ""));
   }
-  if (state.opaqueOff !== DEFAULTS.opaqueOff) {
+  if (state.opaqueOff !== (state.mode === "3d")) {
     params.set("opaque", state.opaqueOff ? "1" : "0");
   }
   if (state.showConnectors !== DEFAULTS.showConnectors) {
@@ -256,7 +257,8 @@ export default function App() {
     writeStateToUrl(state);
   }, [state]);
 
-  const setMode = (mode: ViewMode) => setState((s) => ({ ...s, mode }));
+  const setMode = (mode: ViewMode) =>
+    setState((s) => ({ ...s, mode, opaqueOff: mode === "3d" }));
   const setPattern = (pattern: PatternId) =>
     setState((s) => ({ ...s, pattern }));
   const setStage = (stage: Stage) =>
