@@ -60,6 +60,20 @@ export const GRADIENT_PRESETS: GradientPreset[] = [
     ],
   },
   {
+    id: "heatmap",
+    label: "Heatmap",
+    // Thermal scale from the Paper "heatmap" shader (hot core -> cool edge).
+    stops: [
+      { pos: 0, color: "#cc3333" },
+      { pos: 0.17, color: "#cc9933" },
+      { pos: 0.33, color: "#99cc33" },
+      { pos: 0.5, color: "#33cc33" },
+      { pos: 0.67, color: "#33cc99" },
+      { pos: 0.83, color: "#3399cc" },
+      { pos: 1, color: "#3333cc" },
+    ],
+  },
+  {
     id: "aurora",
     label: "Aurora",
     stops: [
