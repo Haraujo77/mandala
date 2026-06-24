@@ -7,6 +7,7 @@ import {
 } from "../mandala/palette";
 import { PATTERNS, type PatternId } from "../mandala/patterns";
 import type { SizeMode } from "../mandala/render";
+import type { ViewMode } from "../App";
 
 const SIZE_MODES: { id: SizeMode; label: string }[] = [
   { id: "uniform", label: "Uniform" },
@@ -15,6 +16,7 @@ const SIZE_MODES: { id: SizeMode; label: string }[] = [
 ];
 
 interface ControlsProps {
+  mode: ViewMode;
   pattern: PatternId;
   stage: Stage;
   on: number;
@@ -52,6 +54,7 @@ interface ControlsProps {
   onTierLabelsChange: (on: boolean) => void;
   onTierValuesChange: (on: boolean) => void;
   onTierColorChange: (color: string) => void;
+  onModeChange: (mode: ViewMode) => void;
   onAnimateChange: (animate: boolean) => void;
 }
 
@@ -65,6 +68,7 @@ function gradientCss(stops: ColorStop[]): string {
 }
 
 export default function Controls({
+  mode,
   pattern,
   stage,
   on,
@@ -102,8 +106,10 @@ export default function Controls({
   onTierLabelsChange,
   onTierValuesChange,
   onTierColorChange,
+  onModeChange,
   onAnimateChange,
 }: ControlsProps) {
+  const is3d = mode === "3d";
   const colorProgress = Math.min(1, on / FULL_SPECTRUM_AT);
   const spectrumReached = on >= FULL_SPECTRUM_AT;
 
@@ -147,6 +153,28 @@ export default function Controls({
         <p className="controls__subtitle">Friends brought to the project</p>
       </header>
 
+      <div className="segmented" role="tablist" aria-label="View mode">
+        <button
+          type="button"
+          role="tab"
+          className={`segmented__btn${!is3d ? " is-active" : ""}`}
+          aria-selected={!is3d}
+          onClick={() => onModeChange("2d")}
+        >
+          2D
+        </button>
+        <button
+          type="button"
+          role="tab"
+          className={`segmented__btn${is3d ? " is-active" : ""}`}
+          aria-selected={is3d}
+          onClick={() => onModeChange("3d")}
+        >
+          3D
+        </button>
+      </div>
+
+      {!is3d && (
       <section className="control-group">
         <div className="control-label">
           <span>Pattern</span>
@@ -168,11 +196,14 @@ export default function Controls({
           ))}
         </div>
       </section>
+      )}
 
       <section className="control-group">
         <div className="control-label">
           <span>Form</span>
-          <span className="control-hint">slots in view</span>
+          <span className="control-hint">
+            {is3d ? "slots on the dome" : "slots in view"}
+          </span>
         </div>
         <div className="segmented" role="group" aria-label="Milestone stage">
           {STAGES.map((s) => (
@@ -242,6 +273,7 @@ export default function Controls({
         </div>
       </section>
 
+      {!is3d && (
       <section className="control-group">
         <div className="control-label">
           <span>Slot size</span>
@@ -298,6 +330,7 @@ export default function Controls({
           <span>Allow overlap</span>
         </label>
       </section>
+      )}
 
       <section className="control-group">
         <div className="control-label">
@@ -413,6 +446,7 @@ export default function Controls({
         </p>
       </section>
 
+      {!is3d && (
       <section className="control-group">
         <div className="control-label">
           <span>Tiers</span>
@@ -473,8 +507,10 @@ export default function Controls({
           <span className="off-color-label">Ring &amp; label color</span>
         </div>
       </section>
+      )}
 
       <section className="control-group control-group--row">
+        {!is3d && (
         <label className="toggle">
           <input
             type="checkbox"
@@ -483,6 +519,7 @@ export default function Controls({
           />
           <span>Connectors</span>
         </label>
+        )}
         <label className="toggle">
           <input
             type="checkbox"

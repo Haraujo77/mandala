@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import Controls from "./components/Controls";
 import MandalaCanvas from "./components/MandalaCanvas";
+import Sphere3D from "./components/Sphere3D";
 import { isStage, nearestStage, type Stage } from "./mandala/layout";
 import {
   DEFAULT_GRADIENT,
@@ -15,7 +16,10 @@ import type { SizeMode } from "./mandala/render";
 
 const SIZE_MODES: SizeMode[] = ["uniform", "grow", "shrink"];
 
+export type ViewMode = "2d" | "3d";
+
 interface AppState {
+  mode: ViewMode;
   pattern: PatternId;
   stage: Stage;
   on: number;
@@ -40,6 +44,7 @@ interface AppState {
 // The default view (used when no URL params are present). Params are only
 // written to the URL when they differ from these, keeping shared links tidy.
 const DEFAULTS: AppState = {
+  mode: "2d",
   pattern: "bloom",
   stage: 500,
   on: 2,
@@ -69,6 +74,8 @@ function clamp01(v: number): number {
 
 function readStateFromUrl(): AppState {
   const params = new URLSearchParams(window.location.search);
+
+  const mode: ViewMode = params.get("mode") === "3d" ? "3d" : DEFAULTS.mode;
 
   const rawPattern = params.get("pattern") ?? "";
   const pattern: PatternId = isPattern(rawPattern) ? rawPattern : DEFAULTS.pattern;
@@ -149,6 +156,7 @@ function readStateFromUrl(): AppState {
     : DEFAULTS.animate;
 
   return {
+    mode,
     pattern,
     stage,
     on,
@@ -173,6 +181,7 @@ function readStateFromUrl(): AppState {
 
 function writeStateToUrl(state: AppState) {
   const params = new URLSearchParams();
+  if (state.mode !== DEFAULTS.mode) params.set("mode", state.mode);
   if (state.pattern !== DEFAULTS.pattern) params.set("pattern", state.pattern);
   if (state.stage !== DEFAULTS.stage) params.set("stage", String(state.stage));
   if (state.on !== DEFAULTS.on) params.set("on", String(state.on));
@@ -237,6 +246,7 @@ export default function App() {
     writeStateToUrl(state);
   }, [state]);
 
+  const setMode = (mode: ViewMode) => setState((s) => ({ ...s, mode }));
   const setPattern = (pattern: PatternId) =>
     setState((s) => ({ ...s, pattern }));
   const setStage = (stage: Stage) =>
@@ -282,29 +292,41 @@ export default function App() {
   return (
     <div className="app">
       <main className="app__stage">
-        <MandalaCanvas
-          pattern={state.pattern}
-          stage={state.stage}
-          on={state.on}
-          sizeMode={state.sizeMode}
-          sizeAmount={state.sizeAmount}
-          sizePulse={state.sizePulse}
-          allowOverlap={state.allowOverlap}
-          lightIntensity={state.lightIntensity}
-          gradient={state.gradient}
-          offColor={state.offColor}
-          showConnectors={state.showConnectors}
-          lightWave={state.lightWave}
-          tierRings={state.tierRings}
-          tierGaps={state.tierGaps}
-          tierBands={state.tierBands}
-          tierLabels={state.tierLabels}
-          tierValues={state.tierValues}
-          tierColor={state.tierColor}
-          animate={state.animate}
-        />
+        {state.mode === "3d" ? (
+          <Sphere3D
+            count={state.stage}
+            on={state.on}
+            gradient={state.gradient}
+            lightIntensity={state.lightIntensity}
+            offColor={state.offColor}
+            animate={state.animate}
+          />
+        ) : (
+          <MandalaCanvas
+            pattern={state.pattern}
+            stage={state.stage}
+            on={state.on}
+            sizeMode={state.sizeMode}
+            sizeAmount={state.sizeAmount}
+            sizePulse={state.sizePulse}
+            allowOverlap={state.allowOverlap}
+            lightIntensity={state.lightIntensity}
+            gradient={state.gradient}
+            offColor={state.offColor}
+            showConnectors={state.showConnectors}
+            lightWave={state.lightWave}
+            tierRings={state.tierRings}
+            tierGaps={state.tierGaps}
+            tierBands={state.tierBands}
+            tierLabels={state.tierLabels}
+            tierValues={state.tierValues}
+            tierColor={state.tierColor}
+            animate={state.animate}
+          />
+        )}
       </main>
       <Controls
+        mode={state.mode}
         pattern={state.pattern}
         stage={state.stage}
         on={state.on}
@@ -324,6 +346,7 @@ export default function App() {
         tierValues={state.tierValues}
         tierColor={state.tierColor}
         animate={state.animate}
+        onModeChange={setMode}
         onPatternChange={setPattern}
         onStageChange={setStage}
         onOnChange={setOn}
