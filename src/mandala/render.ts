@@ -168,10 +168,13 @@ export function renderMandala(
 
   // Size pulse: sweep the gradient from full grow -> uniform -> full shrink and
   // back, continuously. cos() gives a smooth signed amount in [-1, 1] where
-  // +1 = grow 100%, 0 = uniform, -1 = shrink 100%.
-  const SIZE_PULSE_SPEED = 0.6; // ~10.5s for a full grow<->shrink<->grow cycle
+  // +1 = grow 100%, 0 = uniform, -1 = shrink 100%. A synced global "breath"
+  // (pulseBreath) gently scales every dot too, so the motion reads clearly even
+  // when the fit-to-frame normalization keeps the largest dot near-constant.
+  const SIZE_PULSE_SPEED = 0.9; // ~7s for a full grow<->shrink<->grow cycle
   let effMode = sizeMode;
   let effAmount = safeAmount;
+  let pulseBreath = 1;
   if (sizePulse) {
     const signed = Math.cos(time * SIZE_PULSE_SPEED);
     if (signed >= 0) {
@@ -181,6 +184,8 @@ export function renderMandala(
       effMode = "shrink";
       effAmount = -signed;
     }
+    // grow extreme -> 1.0 (largest), shrink extreme -> 0.72 (smallest).
+    pulseBreath = 0.72 + 0.28 * ((signed + 1) / 2);
   }
 
   const dotFrac = 0.58; // dot radius as a fraction of the spacing
@@ -227,10 +232,11 @@ export function renderMandala(
     ? 1
     : Math.min(1, 0.5 / (dotFrac * maxMult));
 
-  // Resolve a pixel dot radius per slot.
+  // Resolve a pixel dot radius per slot. pulseBreath only scales DOWN from the
+  // non-overlapping baseline, so it never introduces crops or overlaps.
   const rArr = new Array<number>(n);
   for (let i = 0; i < n; i++) {
-    let r = dotFrac * baseOf(i) * mult[i] * P * overlapScale;
+    let r = dotFrac * baseOf(i) * mult[i] * P * overlapScale * pulseBreath;
     r = Math.min(r, S * 0.18); // never let a single dot dominate the frame
     rArr[i] = Number.isFinite(r) && r > 0 ? r : 0.5;
   }
