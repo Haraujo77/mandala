@@ -1,5 +1,5 @@
 :root {
-  --bg: #03040a;
+  --bg: #000000;
   --panel: rgba(20, 26, 46, 0.55);
   --panel-border: rgba(132, 162, 224, 0.16);
   --text: #eaf0ff;
@@ -43,13 +43,7 @@ body {
   place-items: center;
   padding: clamp(16px, 4vw, 48px);
   min-width: 0;
-  background:
-    radial-gradient(
-      circle at 50% 45%,
-      rgba(40, 60, 120, 0.18),
-      transparent 60%
-    ),
-    var(--bg);
+  background: var(--bg);
 }
 
 .mandala-stage {
