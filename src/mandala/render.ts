@@ -167,16 +167,21 @@ export function renderMandala(
     : 0.5;
 
   // Size pulse: sweep the gradient from full grow -> uniform -> full shrink and
-  // back, continuously. cos() gives a smooth signed amount in [-1, 1] where
-  // +1 = grow 100%, 0 = uniform, -1 = shrink 100%. A synced global "breath"
-  // (pulseBreath) gently scales every dot too, so the motion reads clearly even
-  // when the fit-to-frame normalization keeps the largest dot near-constant.
-  const SIZE_PULSE_SPEED = 0.9; // ~7s for a full grow<->shrink<->grow cycle
+  // back, continuously. A cosine gives smooth turnarounds; running its [0,1]
+  // phase through smootherstep adds organic easing that *lingers* at the
+  // fully-grown and fully-shrunk extremes and eases gently through the middle,
+  // so the breathing feels alive rather than metronomic. A synced global
+  // "breath" (pulseBreath) scales every dot too, so the motion reads clearly
+  // even when the fit-to-frame normalization keeps the largest dot near-constant.
+  const SIZE_PULSE_SPEED = 0.85; // ~7.4s for a full grow<->shrink<->grow cycle
   let effMode = sizeMode;
   let effAmount = safeAmount;
   let pulseBreath = 1;
   if (sizePulse) {
-    const signed = Math.cos(time * SIZE_PULSE_SPEED);
+    const c = Math.cos(time * SIZE_PULSE_SPEED);
+    const u = (c + 1) / 2; // 0..1
+    const eased = u * u * u * (u * (u * 6 - 15) + 10); // smootherstep
+    const signed = eased * 2 - 1; // [-1, 1], eased: +1 grow, -1 shrink
     if (signed >= 0) {
       effMode = "grow";
       effAmount = signed;
@@ -185,7 +190,7 @@ export function renderMandala(
       effAmount = -signed;
     }
     // grow extreme -> 1.0 (largest), shrink extreme -> 0.72 (smallest).
-    pulseBreath = 0.72 + 0.28 * ((signed + 1) / 2);
+    pulseBreath = 0.72 + 0.28 * eased;
   }
 
   const dotFrac = 0.58; // dot radius as a fraction of the spacing

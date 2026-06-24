@@ -37,6 +37,17 @@ export interface GradientPreset {
 
 export const GRADIENT_PRESETS: GradientPreset[] = [
   {
+    id: "rh",
+    label: "RH",
+    // White core -> lime -> blue -> deep navy edge.
+    stops: [
+      { pos: 0.06, color: "#ffffff" },
+      { pos: 0.28, color: "#cae84b" },
+      { pos: 0.52, color: "#4385c8" },
+      { pos: 0.8, color: "#0b1252" },
+    ],
+  },
+  {
     id: "spectrum",
     label: "Spectrum",
     stops: [
