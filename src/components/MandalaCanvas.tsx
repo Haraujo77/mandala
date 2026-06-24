@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { viewForStage, type Stage } from "../mandala/layout";
 import type { PatternId } from "../mandala/patterns";
 import { paletteFor, type ColorStop } from "../mandala/palette";
 import { renderMandala, type SizeMode } from "../mandala/render";
+import ShaderBackground, { type ShaderStyle } from "./ShaderBackground";
 
 interface MandalaCanvasProps {
   pattern: PatternId;
@@ -15,6 +16,9 @@ interface MandalaCanvasProps {
   gradient: ColorStop[];
   showConnectors: boolean;
   lightWave: boolean;
+  shaderBg: boolean;
+  shaderStyle: ShaderStyle;
+  shaderSpeed: number;
   animate: boolean;
 }
 
@@ -29,10 +33,14 @@ export default function MandalaCanvas({
   gradient,
   showConnectors,
   lightWave,
+  shaderBg,
+  shaderStyle,
+  shaderSpeed,
   animate,
 }: MandalaCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const sizeRef = useRef({ width: 0, height: 0, dpr: 1 });
+  const [displaySize, setDisplaySize] = useState(0);
 
   const view = useMemo(() => viewForStage(pattern, stage), [pattern, stage]);
   const onCount = Math.max(0, Math.min(on, view.slots.length));
@@ -52,6 +60,7 @@ export default function MandalaCanvas({
     lightIntensity,
     showConnectors,
     lightWave,
+    shaderBg,
     animate,
   });
   frameRef.current = {
@@ -64,6 +73,7 @@ export default function MandalaCanvas({
     lightIntensity,
     showConnectors,
     lightWave,
+    shaderBg,
     animate,
   };
 
@@ -83,6 +93,7 @@ export default function MandalaCanvas({
       canvas.height = Math.floor(size * dpr);
       canvas.style.width = `${size}px`;
       canvas.style.height = `${size}px`;
+      setDisplaySize(size);
     };
 
     resize();
@@ -118,6 +129,7 @@ export default function MandalaCanvas({
         lightIntensity: f.lightIntensity,
         showConnectors: f.showConnectors,
         lightWave: f.lightWave,
+        transparentBg: f.shaderBg,
         time,
         animate: f.animate,
       });
@@ -130,7 +142,15 @@ export default function MandalaCanvas({
 
   return (
     <div className="mandala-stage">
-      <canvas ref={canvasRef} className="mandala-canvas" />
+      {shaderBg && (
+        <ShaderBackground
+          style={shaderStyle}
+          gradient={gradient}
+          speed={shaderSpeed}
+          size={displaySize}
+        />
+      )}
+      <canvas ref={canvasRef} className="mandala-canvas mandala-canvas--top" />
     </div>
   );
 }

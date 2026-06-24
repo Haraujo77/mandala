@@ -36,6 +36,8 @@ export interface RenderOptions {
   showConnectors: boolean;
   /** Animate light intensity as a staggered, outward breathing ripple. */
   lightWave: boolean;
+  /** Clear to transparent instead of the dark vignette (for a shader backdrop). */
+  transparentBg: boolean;
   time: number;
   animate: boolean;
 }
@@ -127,12 +129,14 @@ export function renderMandala(
     lightIntensity,
     showConnectors,
     lightWave,
+    transparentBg,
     time,
     animate,
   } = opts;
   const { slots, edges, fit } = view;
 
-  drawBackground(ctx, width, height);
+  if (transparentBg) ctx.clearRect(0, 0, width, height);
+  else drawBackground(ctx, width, height);
   if (slots.length === 0) return;
 
   const cx = width / 2;

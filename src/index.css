@@ -65,6 +65,11 @@ body {
   border-radius: 50%;
 }
 
+.mandala-canvas--top {
+  position: relative;
+  z-index: 1;
+}
+
 /* ---------- Controls panel ---------- */
 
 .controls {
@@ -278,6 +283,10 @@ input[type="range"]::-moz-range-thumb {
 .subcontrol.is-disabled {
   opacity: 0.4;
   pointer-events: none;
+}
+
+.control-group.is-disabled {
+  opacity: 0.5;
 }
 
 .control-label--sub {
