@@ -63,6 +63,8 @@ export interface RenderSphereOptions {
   gradient: ColorStop[];
   lightIntensity: number;
   offColor?: string;
+  /** Draw slots as solid opaque discs so nearer ones occlude those behind. */
+  opaqueOff?: boolean;
   sizeMode: SizeMode;
   sizeAmount: number;
   sizePulse: boolean;
@@ -82,6 +84,7 @@ export function renderSphere(
     gradient,
     lightIntensity,
     offColor,
+    opaqueOff,
     sizeMode,
     sizeAmount,
     sizePulse,
@@ -114,14 +117,11 @@ export function renderSphere(
   const cosT = Math.cos(TILT);
   const sinT = Math.sin(TILT);
 
-  // Simple perspective: points nearer the camera (larger z) look bigger.
-  const FOCAL = 3.2;
-
-  // Project every point, keep depth for sorting + perspective.
+  // Orthographic projection (parallel rays): position maps linearly and dots
+  // keep their size regardless of depth. Depth is kept only for sorting.
   const order = new Array<number>(n);
   const sx = new Float64Array(n);
   const sy = new Float64Array(n);
-  const persp = new Float64Array(n);
   const depth = new Float64Array(n);
   for (let i = 0; i < n; i++) {
     const p = pts[i];
@@ -137,7 +137,6 @@ export function renderSphere(
     sx[i] = cx + x2 * P;
     sy[i] = cy - y2 * P;
     depth[i] = z2;
-    persp[i] = FOCAL / (FOCAL - z2);
     order[i] = i;
   }
 
@@ -172,26 +171,39 @@ export function renderSphere(
     const x = sx[i];
     const y = sy[i];
     const m = sizeMultiplier(pts[i].radius, effMode, effAmount);
-    let r = baseDot * persp[i] * m * pulseBreath;
+    let r = baseDot * m * pulseBreath;
     r = Math.max(0.5, Math.min(r, S * 0.14));
     const lit = i < onCount;
 
     if (!lit) {
       ctx.globalCompositeOperation = "source-over";
-      const fill = ctx.createRadialGradient(x, y, 0, x, y, r);
-      fill.addColorStop(0, rgba(ghost, 0.3));
-      fill.addColorStop(0.7, rgba(ghost, 0.1));
-      fill.addColorStop(1, rgba(ghost, 0));
-      ctx.fillStyle = fill;
-      ctx.beginPath();
-      ctx.arc(x, y, r, 0, TAU);
-      ctx.fill();
+      if (opaqueOff) {
+        // Solid disc — occludes whatever is drawn behind it.
+        ctx.fillStyle = rgba(ghost, 1);
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, TAU);
+        ctx.fill();
+        ctx.lineWidth = Math.max(0.6, r * 0.12);
+        ctx.strokeStyle = "rgba(0, 0, 0, 0.4)";
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, TAU);
+        ctx.stroke();
+      } else {
+        const fill = ctx.createRadialGradient(x, y, 0, x, y, r);
+        fill.addColorStop(0, rgba(ghost, 0.3));
+        fill.addColorStop(0.7, rgba(ghost, 0.1));
+        fill.addColorStop(1, rgba(ghost, 0));
+        ctx.fillStyle = fill;
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, TAU);
+        ctx.fill();
 
-      ctx.lineWidth = Math.max(0.6, r * 0.12);
-      ctx.strokeStyle = rgba(ghost, 0.45);
-      ctx.beginPath();
-      ctx.arc(x, y, r * 0.72, 0, TAU);
-      ctx.stroke();
+        ctx.lineWidth = Math.max(0.6, r * 0.12);
+        ctx.strokeStyle = rgba(ghost, 0.45);
+        ctx.beginPath();
+        ctx.arc(x, y, r * 0.72, 0, TAU);
+        ctx.stroke();
+      }
       continue;
     }
 
@@ -201,6 +213,15 @@ export function renderSphere(
     const glowAlphaK = 0.45 + li * 1.4;
     const glowSizeK = 0.7 + li * 0.7;
     const glowR = r * 2.6 * glowSizeK;
+
+    // When opaque, lay a solid base disc first so lit slots occlude too.
+    if (opaqueOff) {
+      ctx.globalCompositeOperation = "source-over";
+      ctx.fillStyle = rgba(color, 1);
+      ctx.beginPath();
+      ctx.arc(x, y, r, 0, TAU);
+      ctx.fill();
+    }
 
     ctx.globalCompositeOperation = "lighter";
     const glow = ctx.createRadialGradient(x, y, 0, x, y, glowR);

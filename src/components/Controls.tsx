@@ -27,6 +27,7 @@ interface ControlsProps {
   lightIntensity: number;
   gradient: ColorStop[];
   offColor: string;
+  opaqueOff: boolean;
   showConnectors: boolean;
   lightWave: boolean;
   tierRings: boolean;
@@ -46,6 +47,7 @@ interface ControlsProps {
   onLightIntensityChange: (value: number) => void;
   onGradientChange: (stops: ColorStop[]) => void;
   onOffColorChange: (color: string) => void;
+  onOpaqueOffChange: (on: boolean) => void;
   onShowConnectorsChange: (show: boolean) => void;
   onLightWaveChange: (on: boolean) => void;
   onTierRingsChange: (on: boolean) => void;
@@ -79,6 +81,7 @@ export default function Controls({
   lightIntensity,
   gradient,
   offColor,
+  opaqueOff,
   showConnectors,
   lightWave,
   tierRings,
@@ -98,6 +101,7 @@ export default function Controls({
   onLightIntensityChange,
   onGradientChange,
   onOffColorChange,
+  onOpaqueOffChange,
   onShowConnectorsChange,
   onLightWaveChange,
   onTierRingsChange,
@@ -441,6 +445,15 @@ export default function Controls({
           />
           <span className="off-color-label">Off slot color</span>
         </div>
+
+        <label className="toggle toggle--row">
+          <input
+            type="checkbox"
+            checked={opaqueOff}
+            onChange={(e) => onOpaqueOffChange(e.target.checked)}
+          />
+          <span>Opaque off slots</span>
+        </label>
 
         <p className="control-note">
           Pick a preset or edit the stops. More enabled slots reveal more of the

@@ -15,6 +15,7 @@ interface MandalaCanvasProps {
   lightIntensity: number;
   gradient: ColorStop[];
   offColor: string;
+  opaqueOff: boolean;
   showConnectors: boolean;
   lightWave: boolean;
   tierRings: boolean;
@@ -37,6 +38,7 @@ export default function MandalaCanvas({
   lightIntensity,
   gradient,
   offColor,
+  opaqueOff,
   showConnectors,
   lightWave,
   tierRings,
@@ -68,6 +70,7 @@ export default function MandalaCanvas({
     allowOverlap,
     lightIntensity,
     offColor,
+    opaqueOff,
     showConnectors,
     lightWave,
     tierRings,
@@ -88,6 +91,7 @@ export default function MandalaCanvas({
     allowOverlap,
     lightIntensity,
     offColor,
+    opaqueOff,
     showConnectors,
     lightWave,
     tierRings,
@@ -151,6 +155,7 @@ export default function MandalaCanvas({
         allowOverlap: f.allowOverlap,
         lightIntensity: f.lightIntensity,
         offColor: f.offColor,
+        opaqueOff: f.opaqueOff,
         showConnectors: f.showConnectors,
         lightWave: f.lightWave,
         tierRings: f.tierRings,

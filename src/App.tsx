@@ -30,6 +30,7 @@ interface AppState {
   lightIntensity: number;
   gradient: ColorStop[];
   offColor: string;
+  opaqueOff: boolean;
   showConnectors: boolean;
   lightWave: boolean;
   tierRings: boolean;
@@ -55,6 +56,7 @@ const DEFAULTS: AppState = {
   lightIntensity: 0.5,
   gradient: DEFAULT_GRADIENT,
   offColor: DEFAULT_OFF_COLOR,
+  opaqueOff: false,
   showConnectors: true,
   lightWave: false,
   tierRings: false,
@@ -122,6 +124,10 @@ function readStateFromUrl(): AppState {
   const offColor =
     /^[0-9a-fA-F]{6}$/.test(rawOff) ? `#${rawOff.toLowerCase()}` : DEFAULTS.offColor;
 
+  const opaqueOff = params.has("opaque")
+    ? params.get("opaque") === "1"
+    : DEFAULTS.opaqueOff;
+
   const showConnectors = params.has("links")
     ? params.get("links") === "1"
     : DEFAULTS.showConnectors;
@@ -167,6 +173,7 @@ function readStateFromUrl(): AppState {
     lightIntensity,
     gradient,
     offColor,
+    opaqueOff,
     showConnectors,
     lightWave,
     tierRings,
@@ -204,6 +211,9 @@ function writeStateToUrl(state: AppState) {
   }
   if (state.offColor !== DEFAULTS.offColor) {
     params.set("off", state.offColor.replace(/^#/, ""));
+  }
+  if (state.opaqueOff !== DEFAULTS.opaqueOff) {
+    params.set("opaque", state.opaqueOff ? "1" : "0");
   }
   if (state.showConnectors !== DEFAULTS.showConnectors) {
     params.set("links", state.showConnectors ? "1" : "0");
@@ -270,6 +280,8 @@ export default function App() {
     setState((s) => ({ ...s, gradient }));
   const setOffColor = (offColor: string) =>
     setState((s) => ({ ...s, offColor }));
+  const setOpaqueOff = (opaqueOff: boolean) =>
+    setState((s) => ({ ...s, opaqueOff }));
   const setShowConnectors = (showConnectors: boolean) =>
     setState((s) => ({ ...s, showConnectors }));
   const setLightWave = (lightWave: boolean) =>
@@ -299,6 +311,7 @@ export default function App() {
             gradient={state.gradient}
             lightIntensity={state.lightIntensity}
             offColor={state.offColor}
+            opaqueOff={state.opaqueOff}
             sizeMode={state.sizeMode}
             sizeAmount={state.sizeAmount}
             sizePulse={state.sizePulse}
@@ -316,6 +329,7 @@ export default function App() {
             lightIntensity={state.lightIntensity}
             gradient={state.gradient}
             offColor={state.offColor}
+            opaqueOff={state.opaqueOff}
             showConnectors={state.showConnectors}
             lightWave={state.lightWave}
             tierRings={state.tierRings}
@@ -340,6 +354,7 @@ export default function App() {
         lightIntensity={state.lightIntensity}
         gradient={state.gradient}
         offColor={state.offColor}
+        opaqueOff={state.opaqueOff}
         showConnectors={state.showConnectors}
         lightWave={state.lightWave}
         tierRings={state.tierRings}
@@ -360,6 +375,7 @@ export default function App() {
         onLightIntensityChange={setLightIntensity}
         onGradientChange={setGradient}
         onOffColorChange={setOffColor}
+        onOpaqueOffChange={setOpaqueOff}
         onShowConnectorsChange={setShowConnectors}
         onLightWaveChange={setLightWave}
         onTierRingsChange={setTierRings}

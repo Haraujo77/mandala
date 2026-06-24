@@ -46,6 +46,8 @@ export interface RenderOptions {
   showConnectors: boolean;
   /** Color for disabled (off/ghost) slots, hex string. */
   offColor?: string;
+  /** Draw off slots as solid opaque discs (so overlaps occlude). */
+  opaqueOff?: boolean;
   /** Animate light intensity as a staggered, outward breathing ripple. */
   lightWave: boolean;
   /** Draw faint divider rings at the milestone tier boundaries. */
@@ -182,6 +184,7 @@ export function renderMandala(
     lightIntensity,
     showConnectors,
     offColor,
+    opaqueOff,
     lightWave,
     tierRings,
     tierGaps,
@@ -437,20 +440,32 @@ export function renderMandala(
     const y = py(i);
     const r = rOf(i);
 
-    const fill = ctx.createRadialGradient(x, y, 0, x, y, r);
-    fill.addColorStop(0, rgba(ghost, 0.26));
-    fill.addColorStop(0.7, rgba(ghost, 0.09));
-    fill.addColorStop(1, rgba(ghost, 0));
-    ctx.fillStyle = fill;
-    ctx.beginPath();
-    ctx.arc(x, y, r, 0, TAU);
-    ctx.fill();
+    if (opaqueOff) {
+      ctx.fillStyle = rgba(ghost, 1);
+      ctx.beginPath();
+      ctx.arc(x, y, r, 0, TAU);
+      ctx.fill();
+      ctx.lineWidth = Math.max(0.75, r * 0.1);
+      ctx.strokeStyle = "rgba(0, 0, 0, 0.4)";
+      ctx.beginPath();
+      ctx.arc(x, y, r, 0, TAU);
+      ctx.stroke();
+    } else {
+      const fill = ctx.createRadialGradient(x, y, 0, x, y, r);
+      fill.addColorStop(0, rgba(ghost, 0.26));
+      fill.addColorStop(0.7, rgba(ghost, 0.09));
+      fill.addColorStop(1, rgba(ghost, 0));
+      ctx.fillStyle = fill;
+      ctx.beginPath();
+      ctx.arc(x, y, r, 0, TAU);
+      ctx.fill();
 
-    ctx.lineWidth = Math.max(0.75, r * 0.1);
-    ctx.strokeStyle = rgba(ghost, 0.5);
-    ctx.beginPath();
-    ctx.arc(x, y, r * 0.72, 0, TAU);
-    ctx.stroke();
+      ctx.lineWidth = Math.max(0.75, r * 0.1);
+      ctx.strokeStyle = rgba(ghost, 0.5);
+      ctx.beginPath();
+      ctx.arc(x, y, r * 0.72, 0, TAU);
+      ctx.stroke();
+    }
   }
 
   // ---- Lit slots (enabled) -------------------------------------------------

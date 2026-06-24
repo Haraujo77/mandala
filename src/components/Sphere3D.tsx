@@ -9,6 +9,7 @@ interface Sphere3DProps {
   gradient: ColorStop[];
   lightIntensity: number;
   offColor: string;
+  opaqueOff: boolean;
   sizeMode: SizeMode;
   sizeAmount: number;
   sizePulse: boolean;
@@ -21,6 +22,7 @@ export default function Sphere3D({
   gradient,
   lightIntensity,
   offColor,
+  opaqueOff,
   sizeMode,
   sizeAmount,
   sizePulse,
@@ -35,6 +37,7 @@ export default function Sphere3D({
     gradient,
     lightIntensity,
     offColor,
+    opaqueOff,
     sizeMode,
     sizeAmount,
     sizePulse,
@@ -46,6 +49,7 @@ export default function Sphere3D({
     gradient,
     lightIntensity,
     offColor,
+    opaqueOff,
     sizeMode,
     sizeAmount,
     sizePulse,
@@ -97,6 +101,7 @@ export default function Sphere3D({
         gradient: f.gradient,
         lightIntensity: f.lightIntensity,
         offColor: f.offColor,
+        opaqueOff: f.opaqueOff,
         sizeMode: f.sizeMode,
         sizeAmount: f.sizeAmount,
         sizePulse: f.sizePulse,
