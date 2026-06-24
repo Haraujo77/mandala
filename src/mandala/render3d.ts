@@ -14,6 +14,7 @@ import {
   type ColorStop,
   type Rgb,
 } from "./palette";
+import { sizeMultiplier, type SizeMode } from "./render";
 
 function clamp01(v: number): number {
   return v < 0 ? 0 : v > 1 ? 1 : v;
@@ -22,7 +23,7 @@ function clamp01(v: number): number {
 const TAU = Math.PI * 2;
 const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5));
 const MARGIN = 0.9;
-const TILT = 0.62; // view tilt (radians) — look slightly down onto the dome
+const TILT = 0.12; // near-frontal — read the dome as a sphere viewed head-on
 
 interface P3 {
   x: number;
@@ -62,6 +63,9 @@ export interface RenderSphereOptions {
   gradient: ColorStop[];
   lightIntensity: number;
   offColor?: string;
+  sizeMode: SizeMode;
+  sizeAmount: number;
+  sizePulse: boolean;
   time: number;
   animate: boolean;
 }
@@ -78,6 +82,9 @@ export function renderSphere(
     gradient,
     lightIntensity,
     offColor,
+    sizeMode,
+    sizeAmount,
+    sizePulse,
     time,
     animate,
   } = opts;
@@ -137,12 +144,36 @@ export function renderSphere(
   // Painter's algorithm: far (small z) first.
   order.sort((a, b) => depth[a] - depth[b]);
 
+  // Size-scaling gradient (pole = center, equator = edge), with optional pulse.
+  const safeAmount = Number.isFinite(sizeAmount)
+    ? Math.max(0, Math.min(1, sizeAmount))
+    : 0.5;
+  let effMode = sizeMode;
+  let effAmount = safeAmount;
+  let pulseBreath = 1;
+  if (sizePulse) {
+    const c = Math.cos(time * 0.85);
+    const u = (c + 1) / 2;
+    const eased = u * u * u * (u * (u * 6 - 15) + 10);
+    const signed = eased * 2 - 1;
+    if (signed >= 0) {
+      effMode = "grow";
+      effAmount = signed;
+    } else {
+      effMode = "shrink";
+      effAmount = -signed;
+    }
+    pulseBreath = 0.72 + 0.28 * eased;
+  }
+
   const baseDot = P * (1.05 / Math.sqrt(n));
 
   for (const i of order) {
     const x = sx[i];
     const y = sy[i];
-    const r = Math.max(0.5, baseDot * persp[i]);
+    const m = sizeMultiplier(pts[i].radius, effMode, effAmount);
+    let r = baseDot * persp[i] * m * pulseBreath;
+    r = Math.max(0.5, Math.min(r, S * 0.14));
     const lit = i < onCount;
 
     if (!lit) {

@@ -299,6 +299,9 @@ export default function App() {
             gradient={state.gradient}
             lightIntensity={state.lightIntensity}
             offColor={state.offColor}
+            sizeMode={state.sizeMode}
+            sizeAmount={state.sizeAmount}
+            sizePulse={state.sizePulse}
             animate={state.animate}
           />
         ) : (

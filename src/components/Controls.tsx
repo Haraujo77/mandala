@@ -273,11 +273,12 @@ export default function Controls({
         </div>
       </section>
 
-      {!is3d && (
       <section className="control-group">
         <div className="control-label">
           <span>Slot size</span>
-          <span className="control-hint">center to edge</span>
+          <span className="control-hint">
+            {is3d ? "pole to equator" : "center to edge"}
+          </span>
         </div>
         <div className="segmented segmented--3" role="group" aria-label="Slot size">
           {SIZE_MODES.map((m) => (
@@ -321,6 +322,7 @@ export default function Controls({
           <span>Animate size (grow ↔ shrink)</span>
         </label>
 
+        {!is3d && (
         <label className="toggle toggle--row">
           <input
             type="checkbox"
@@ -329,8 +331,8 @@ export default function Controls({
           />
           <span>Allow overlap</span>
         </label>
+        )}
       </section>
-      )}
 
       <section className="control-group">
         <div className="control-label">

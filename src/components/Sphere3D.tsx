@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import type { ColorStop } from "../mandala/palette";
 import { renderSphere } from "../mandala/render3d";
+import type { SizeMode } from "../mandala/render";
 
 interface Sphere3DProps {
   count: number;
@@ -8,6 +9,9 @@ interface Sphere3DProps {
   gradient: ColorStop[];
   lightIntensity: number;
   offColor: string;
+  sizeMode: SizeMode;
+  sizeAmount: number;
+  sizePulse: boolean;
   animate: boolean;
 }
 
@@ -17,13 +21,36 @@ export default function Sphere3D({
   gradient,
   lightIntensity,
   offColor,
+  sizeMode,
+  sizeAmount,
+  sizePulse,
   animate,
 }: Sphere3DProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const sizeRef = useRef({ width: 0, height: 0, dpr: 1 });
 
-  const frameRef = useRef({ count, on, gradient, lightIntensity, offColor, animate });
-  frameRef.current = { count, on, gradient, lightIntensity, offColor, animate };
+  const frameRef = useRef({
+    count,
+    on,
+    gradient,
+    lightIntensity,
+    offColor,
+    sizeMode,
+    sizeAmount,
+    sizePulse,
+    animate,
+  });
+  frameRef.current = {
+    count,
+    on,
+    gradient,
+    lightIntensity,
+    offColor,
+    sizeMode,
+    sizeAmount,
+    sizePulse,
+    animate,
+  };
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -70,6 +97,9 @@ export default function Sphere3D({
         gradient: f.gradient,
         lightIntensity: f.lightIntensity,
         offColor: f.offColor,
+        sizeMode: f.sizeMode,
+        sizeAmount: f.sizeAmount,
+        sizePulse: f.sizePulse,
         time,
         animate: f.animate,
       });

@@ -83,7 +83,7 @@ const MAX_AMP = 0.85;
 const MARGIN = 0.94;
 
 /** Per-slot size multiplier from the center-outward gradient. */
-function sizeMultiplier(
+export function sizeMultiplier(
   radius: number,
   mode: SizeMode,
   amount: number,
