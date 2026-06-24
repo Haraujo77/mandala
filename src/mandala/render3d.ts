@@ -23,7 +23,7 @@ function clamp01(v: number): number {
 const TAU = Math.PI * 2;
 const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5));
 const MARGIN = 0.9;
-const TILT = 0.12; // near-frontal — read the dome as a sphere viewed head-on
+const TILT = 1.35; // ~77° — look down onto the dome from the top
 
 interface P3 {
   x: number;
