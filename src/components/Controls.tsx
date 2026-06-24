@@ -19,6 +19,7 @@ interface ControlsProps {
   lightIntensity: number;
   hueStart: number;
   hueEnd: number;
+  showConnectors: boolean;
   animate: boolean;
   onPatternChange: (pattern: PatternId) => void;
   onStageChange: (stage: Stage) => void;
@@ -29,6 +30,7 @@ interface ControlsProps {
   onLightIntensityChange: (value: number) => void;
   onHueStartChange: (value: number) => void;
   onHueEndChange: (value: number) => void;
+  onShowConnectorsChange: (show: boolean) => void;
   onAnimateChange: (animate: boolean) => void;
 }
 
@@ -55,6 +57,7 @@ export default function Controls({
   lightIntensity,
   hueStart,
   hueEnd,
+  showConnectors,
   animate,
   onPatternChange,
   onStageChange,
@@ -65,6 +68,7 @@ export default function Controls({
   onLightIntensityChange,
   onHueStartChange,
   onHueEndChange,
+  onShowConnectorsChange,
   onAnimateChange,
 }: ControlsProps) {
   const colorProgress = Math.min(1, on / FULL_SPECTRUM_AT);
@@ -291,6 +295,14 @@ export default function Controls({
       </section>
 
       <section className="control-group control-group--row">
+        <label className="toggle">
+          <input
+            type="checkbox"
+            checked={showConnectors}
+            onChange={(e) => onShowConnectorsChange(e.target.checked)}
+          />
+          <span>Connectors</span>
+        </label>
         <label className="toggle">
           <input
             type="checkbox"

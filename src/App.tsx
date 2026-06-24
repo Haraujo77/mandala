@@ -17,6 +17,7 @@ interface AppState {
   lightIntensity: number;
   hueStart: number;
   hueEnd: number;
+  showConnectors: boolean;
   animate: boolean;
 }
 
@@ -32,6 +33,7 @@ const DEFAULTS: AppState = {
   lightIntensity: 0.5,
   hueStart: 0,
   hueEnd: 278,
+  showConnectors: true,
   animate: true,
 };
 
@@ -85,6 +87,10 @@ function readStateFromUrl(): AppState {
     ? clampHue(Number(params.get("h1")), DEFAULTS.hueEnd)
     : DEFAULTS.hueEnd;
 
+  const showConnectors = params.has("links")
+    ? params.get("links") === "1"
+    : DEFAULTS.showConnectors;
+
   const animate = params.has("animate")
     ? params.get("animate") === "1"
     : DEFAULTS.animate;
@@ -99,6 +105,7 @@ function readStateFromUrl(): AppState {
     lightIntensity,
     hueStart,
     hueEnd,
+    showConnectors,
     animate,
   };
 }
@@ -123,6 +130,9 @@ function writeStateToUrl(state: AppState) {
   }
   if (state.hueEnd !== DEFAULTS.hueEnd) {
     params.set("h1", String(state.hueEnd));
+  }
+  if (state.showConnectors !== DEFAULTS.showConnectors) {
+    params.set("links", state.showConnectors ? "1" : "0");
   }
   if (state.animate !== DEFAULTS.animate) {
     params.set("animate", state.animate ? "1" : "0");
@@ -162,6 +172,8 @@ export default function App() {
     setState((s) => ({ ...s, hueStart: clampHue(hueStart, DEFAULTS.hueStart) }));
   const setHueEnd = (hueEnd: number) =>
     setState((s) => ({ ...s, hueEnd: clampHue(hueEnd, DEFAULTS.hueEnd) }));
+  const setShowConnectors = (showConnectors: boolean) =>
+    setState((s) => ({ ...s, showConnectors }));
   const setAnimate = (animate: boolean) =>
     setState((s) => ({ ...s, animate }));
 
@@ -178,6 +190,7 @@ export default function App() {
           lightIntensity={state.lightIntensity}
           hueStart={state.hueStart}
           hueEnd={state.hueEnd}
+          showConnectors={state.showConnectors}
           animate={state.animate}
         />
       </main>
@@ -191,6 +204,7 @@ export default function App() {
         lightIntensity={state.lightIntensity}
         hueStart={state.hueStart}
         hueEnd={state.hueEnd}
+        showConnectors={state.showConnectors}
         animate={state.animate}
         onPatternChange={setPattern}
         onStageChange={setStage}
@@ -201,6 +215,7 @@ export default function App() {
         onLightIntensityChange={setLightIntensity}
         onHueStartChange={setHueStart}
         onHueEndChange={setHueEnd}
+        onShowConnectorsChange={setShowConnectors}
         onAnimateChange={setAnimate}
       />
     </div>

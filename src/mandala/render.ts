@@ -28,6 +28,8 @@ export interface RenderOptions {
   allowOverlap: boolean;
   /** Brightness/size of the lit slots' glow, 0..1. */
   lightIntensity: number;
+  /** Draw the connective mesh between slots. */
+  showConnectors: boolean;
   time: number;
   animate: boolean;
 }
@@ -117,6 +119,7 @@ export function renderMandala(
     sizeAmount,
     allowOverlap,
     lightIntensity,
+    showConnectors,
     time,
     animate,
   } = opts;
@@ -220,7 +223,7 @@ export function renderMandala(
   ctx.globalCompositeOperation = "source-over";
   const litHalf = (i: number) => Math.max(1, rOf(i) * 0.16);
   const offHalf = 0.5;
-  for (const [ai, bi] of edges) {
+  for (const [ai, bi] of showConnectors ? edges : []) {
     const a = slots[ai];
     const b = slots[bi];
     const ax = px(ai);
