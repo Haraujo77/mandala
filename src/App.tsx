@@ -4,6 +4,7 @@ import MandalaCanvas from "./components/MandalaCanvas";
 import { isStage, nearestStage, type Stage } from "./mandala/layout";
 import {
   DEFAULT_GRADIENT,
+  DEFAULT_OFF_COLOR,
   parseGradient,
   serializeGradient,
   type ColorStop,
@@ -23,6 +24,7 @@ interface AppState {
   allowOverlap: boolean;
   lightIntensity: number;
   gradient: ColorStop[];
+  offColor: string;
   showConnectors: boolean;
   lightWave: boolean;
   animate: boolean;
@@ -40,6 +42,7 @@ const DEFAULTS: AppState = {
   allowOverlap: false,
   lightIntensity: 0.5,
   gradient: DEFAULT_GRADIENT,
+  offColor: DEFAULT_OFF_COLOR,
   showConnectors: true,
   lightWave: false,
   animate: true,
@@ -95,6 +98,10 @@ function readStateFromUrl(): AppState {
     : null;
   const gradient = parsedGradient ?? DEFAULTS.gradient;
 
+  const rawOff = (params.get("off") ?? "").replace(/^#/, "");
+  const offColor =
+    /^[0-9a-fA-F]{6}$/.test(rawOff) ? `#${rawOff.toLowerCase()}` : DEFAULTS.offColor;
+
   const showConnectors = params.has("links")
     ? params.get("links") === "1"
     : DEFAULTS.showConnectors;
@@ -117,6 +124,7 @@ function readStateFromUrl(): AppState {
     allowOverlap,
     lightIntensity,
     gradient,
+    offColor,
     showConnectors,
     lightWave,
     animate,
@@ -144,6 +152,9 @@ function writeStateToUrl(state: AppState) {
   const gradKey = serializeGradient(state.gradient);
   if (gradKey !== DEFAULT_GRADIENT_KEY) {
     params.set("grad", gradKey);
+  }
+  if (state.offColor !== DEFAULTS.offColor) {
+    params.set("off", state.offColor.replace(/^#/, ""));
   }
   if (state.showConnectors !== DEFAULTS.showConnectors) {
     params.set("links", state.showConnectors ? "1" : "0");
@@ -189,6 +200,8 @@ export default function App() {
     setState((s) => ({ ...s, lightIntensity: clamp01(lightIntensity) }));
   const setGradient = (gradient: ColorStop[]) =>
     setState((s) => ({ ...s, gradient }));
+  const setOffColor = (offColor: string) =>
+    setState((s) => ({ ...s, offColor }));
   const setShowConnectors = (showConnectors: boolean) =>
     setState((s) => ({ ...s, showConnectors }));
   const setLightWave = (lightWave: boolean) =>
@@ -209,6 +222,7 @@ export default function App() {
           allowOverlap={state.allowOverlap}
           lightIntensity={state.lightIntensity}
           gradient={state.gradient}
+          offColor={state.offColor}
           showConnectors={state.showConnectors}
           lightWave={state.lightWave}
           animate={state.animate}
@@ -224,6 +238,7 @@ export default function App() {
         allowOverlap={state.allowOverlap}
         lightIntensity={state.lightIntensity}
         gradient={state.gradient}
+        offColor={state.offColor}
         showConnectors={state.showConnectors}
         lightWave={state.lightWave}
         animate={state.animate}
@@ -236,6 +251,7 @@ export default function App() {
         onAllowOverlapChange={setAllowOverlap}
         onLightIntensityChange={setLightIntensity}
         onGradientChange={setGradient}
+        onOffColorChange={setOffColor}
         onShowConnectorsChange={setShowConnectors}
         onLightWaveChange={setLightWave}
         onAnimateChange={setAnimate}

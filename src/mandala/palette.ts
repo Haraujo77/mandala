@@ -259,6 +259,9 @@ function hslToRgb(h: number, s: number, l: number): Rgb {
 /** Dim, cool color for disabled (ghost) slots — visible but clearly inactive. */
 export const GHOST_RGB: Rgb = hslToRgb(206, 0.32, 0.62);
 
+/** Default off-slot color as a hex string (for state/URL/UI defaults). */
+export const DEFAULT_OFF_COLOR: string = rgbToHex(GHOST_RGB);
+
 export function rgba({ r, g, b }: Rgb, a: number): string {
   return `rgba(${Math.round(r)}, ${Math.round(g)}, ${Math.round(b)}, ${a})`;
 }

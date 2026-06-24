@@ -11,7 +11,13 @@
 // whole figure read as a continuous gradient rather than discrete dots.
 
 import type { Slot, StageView } from "./layout";
-import { colorForSlot, GHOST_RGB, rgba, type Palette } from "./palette";
+import {
+  colorForSlot,
+  GHOST_RGB,
+  hexToRgb,
+  rgba,
+  type Palette,
+} from "./palette";
 
 function clamp01(v: number): number {
   return v < 0 ? 0 : v > 1 ? 1 : v;
@@ -36,6 +42,8 @@ export interface RenderOptions {
   lightIntensity: number;
   /** Draw the connective mesh between slots. */
   showConnectors: boolean;
+  /** Color for disabled (off/ghost) slots, hex string. */
+  offColor?: string;
   /** Animate light intensity as a staggered, outward breathing ripple. */
   lightWave: boolean;
   time: number;
@@ -118,11 +126,13 @@ export function renderMandala(
     allowOverlap,
     lightIntensity,
     showConnectors,
+    offColor,
     lightWave,
     time,
     animate,
   } = opts;
   const { slots, edges, fit } = view;
+  const ghost = offColor ? hexToRgb(offColor) : GHOST_RGB;
 
   drawBackground(ctx, width, height);
   if (slots.length === 0) return;
@@ -261,8 +271,8 @@ export function renderMandala(
     const bLit = bi < onCount;
 
     if (aLit || bLit) {
-      const ca = aLit ? colorForSlot(a, visibleCount, palette) : GHOST_RGB;
-      const cb = bLit ? colorForSlot(b, visibleCount, palette) : GHOST_RGB;
+      const ca = aLit ? colorForSlot(a, visibleCount, palette) : ghost;
+      const cb = bLit ? colorForSlot(b, visibleCount, palette) : ghost;
       const grad = ctx.createLinearGradient(ax, ay, bx, by);
       grad.addColorStop(0, rgba(ca, aLit ? 0.6 : meshAlpha * 0.6));
       grad.addColorStop(1, rgba(cb, bLit ? 0.6 : meshAlpha * 0.6));
@@ -277,7 +287,7 @@ export function renderMandala(
         bLit ? litHalf(bi) : offHalf,
       );
     } else {
-      ctx.strokeStyle = rgba(GHOST_RGB, meshAlpha * 0.45);
+      ctx.strokeStyle = rgba(ghost, meshAlpha * 0.45);
       ctx.lineWidth = 1;
       ctx.beginPath();
       ctx.moveTo(ax, ay);
@@ -293,16 +303,16 @@ export function renderMandala(
     const r = rOf(i);
 
     const fill = ctx.createRadialGradient(x, y, 0, x, y, r);
-    fill.addColorStop(0, rgba(GHOST_RGB, 0.26));
-    fill.addColorStop(0.7, rgba(GHOST_RGB, 0.09));
-    fill.addColorStop(1, rgba(GHOST_RGB, 0));
+    fill.addColorStop(0, rgba(ghost, 0.26));
+    fill.addColorStop(0.7, rgba(ghost, 0.09));
+    fill.addColorStop(1, rgba(ghost, 0));
     ctx.fillStyle = fill;
     ctx.beginPath();
     ctx.arc(x, y, r, 0, TAU);
     ctx.fill();
 
     ctx.lineWidth = Math.max(0.75, r * 0.1);
-    ctx.strokeStyle = rgba(GHOST_RGB, 0.5);
+    ctx.strokeStyle = rgba(ghost, 0.5);
     ctx.beginPath();
     ctx.arc(x, y, r * 0.72, 0, TAU);
     ctx.stroke();

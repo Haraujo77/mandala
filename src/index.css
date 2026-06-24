@@ -416,6 +416,17 @@ input[type="range"]:disabled {
   border-radius: 5px;
 }
 
+.gradient-stop--off {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(132, 162, 224, 0.16);
+}
+
+.off-color-label {
+  font-size: 13px;
+  color: var(--muted);
+}
+
 .gradient-stop__remove {
   appearance: none;
   flex: 0 0 auto;

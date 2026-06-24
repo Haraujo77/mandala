@@ -24,6 +24,7 @@ interface ControlsProps {
   allowOverlap: boolean;
   lightIntensity: number;
   gradient: ColorStop[];
+  offColor: string;
   showConnectors: boolean;
   lightWave: boolean;
   animate: boolean;
@@ -36,6 +37,7 @@ interface ControlsProps {
   onAllowOverlapChange: (allow: boolean) => void;
   onLightIntensityChange: (value: number) => void;
   onGradientChange: (stops: ColorStop[]) => void;
+  onOffColorChange: (color: string) => void;
   onShowConnectorsChange: (show: boolean) => void;
   onLightWaveChange: (on: boolean) => void;
   onAnimateChange: (animate: boolean) => void;
@@ -60,6 +62,7 @@ export default function Controls({
   allowOverlap,
   lightIntensity,
   gradient,
+  offColor,
   showConnectors,
   lightWave,
   animate,
@@ -72,6 +75,7 @@ export default function Controls({
   onAllowOverlapChange,
   onLightIntensityChange,
   onGradientChange,
+  onOffColorChange,
   onShowConnectorsChange,
   onLightWaveChange,
   onAnimateChange,
@@ -367,6 +371,17 @@ export default function Controls({
         <button type="button" className="ghost-btn ghost-btn--block" onClick={addStop}>
           Add color stop
         </button>
+
+        <div className="gradient-stop gradient-stop--off">
+          <input
+            type="color"
+            className="gradient-stop__color"
+            value={offColor}
+            onChange={(e) => onOffColorChange(e.target.value)}
+            aria-label="Off slot color"
+          />
+          <span className="off-color-label">Off slot color</span>
+        </div>
 
         <p className="control-note">
           Pick a preset or edit the stops. More enabled slots reveal more of the

@@ -14,6 +14,7 @@ interface MandalaCanvasProps {
   allowOverlap: boolean;
   lightIntensity: number;
   gradient: ColorStop[];
+  offColor: string;
   showConnectors: boolean;
   lightWave: boolean;
   animate: boolean;
@@ -29,6 +30,7 @@ export default function MandalaCanvas({
   allowOverlap,
   lightIntensity,
   gradient,
+  offColor,
   showConnectors,
   lightWave,
   animate,
@@ -53,6 +55,7 @@ export default function MandalaCanvas({
     sizePulse,
     allowOverlap,
     lightIntensity,
+    offColor,
     showConnectors,
     lightWave,
     animate,
@@ -66,6 +69,7 @@ export default function MandalaCanvas({
     sizePulse,
     allowOverlap,
     lightIntensity,
+    offColor,
     showConnectors,
     lightWave,
     animate,
@@ -122,6 +126,7 @@ export default function MandalaCanvas({
         sizePulse: f.sizePulse,
         allowOverlap: f.allowOverlap,
         lightIntensity: f.lightIntensity,
+        offColor: f.offColor,
         showConnectors: f.showConnectors,
         lightWave: f.lightWave,
         time,
