@@ -14,6 +14,7 @@ interface MandalaCanvasProps {
   lightIntensity: number;
   gradient: ColorStop[];
   showConnectors: boolean;
+  lightWave: boolean;
   animate: boolean;
 }
 
@@ -27,6 +28,7 @@ export default function MandalaCanvas({
   lightIntensity,
   gradient,
   showConnectors,
+  lightWave,
   animate,
 }: MandalaCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -49,6 +51,7 @@ export default function MandalaCanvas({
     allowOverlap,
     lightIntensity,
     showConnectors,
+    lightWave,
     animate,
   });
   frameRef.current = {
@@ -60,6 +63,7 @@ export default function MandalaCanvas({
     allowOverlap,
     lightIntensity,
     showConnectors,
+    lightWave,
     animate,
   };
 
@@ -113,6 +117,7 @@ export default function MandalaCanvas({
         allowOverlap: f.allowOverlap,
         lightIntensity: f.lightIntensity,
         showConnectors: f.showConnectors,
+        lightWave: f.lightWave,
         time,
         animate: f.animate,
       });

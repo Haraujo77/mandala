@@ -10,8 +10,12 @@
 // The tight golden-angle packing plus the smooth radial color field make the
 // whole figure read as a continuous gradient rather than discrete dots.
 
-import type { StageView } from "./layout";
+import type { Slot, StageView } from "./layout";
 import { colorForSlot, GHOST_RGB, rgba, type Palette } from "./palette";
+
+function clamp01(v: number): number {
+  return v < 0 ? 0 : v > 1 ? 1 : v;
+}
 
 export type SizeMode = "uniform" | "grow" | "shrink";
 
@@ -30,6 +34,8 @@ export interface RenderOptions {
   lightIntensity: number;
   /** Draw the connective mesh between slots. */
   showConnectors: boolean;
+  /** Animate light intensity as a staggered, outward breathing ripple. */
+  lightWave: boolean;
   time: number;
   animate: boolean;
 }
@@ -120,6 +126,7 @@ export function renderMandala(
     allowOverlap,
     lightIntensity,
     showConnectors,
+    lightWave,
     time,
     animate,
   } = opts;
@@ -286,8 +293,18 @@ export function renderMandala(
   const li = Number.isFinite(lightIntensity)
     ? Math.max(0, Math.min(1, lightIntensity))
     : 0.5;
-  const glowAlphaK = 0.45 + li * 1.4; // ~0.45..1.85
-  const glowSizeK = 0.7 + li * 0.7; // ~0.7..1.4
+  // Staggered breathing: an outward-traveling wave offsets each slot's phase by
+  // its (normalized) radius, so the light ripples smoothly from center to edge.
+  const WAVE_SPEED = 1.5; // radians/second
+  const WAVE_SPREAD = 1.6; // wavelengths across the radius
+  const WAVE_DEPTH = 0.7; // how deeply the intensity dips (fraction of base)
+  const liFor = (slot: Slot) => {
+    if (!lightWave) return li;
+    const tr = clamp01(slot.radius * radiusNorm);
+    const phase = time * WAVE_SPEED - tr * (TAU * WAVE_SPREAD);
+    const wave = (Math.sin(phase) + 1) / 2; // 0..1
+    return clamp01(li * (1 - WAVE_DEPTH + WAVE_DEPTH * wave));
+  };
   ctx.globalCompositeOperation = "lighter";
   for (let i = 0; i < onCount && i < slots.length; i++) {
     const slot = slots[i];
@@ -296,6 +313,9 @@ export function renderMandala(
     const r = rOf(i);
     const color = colorForSlot(slot, visibleCount, palette);
 
+    const liSlot = liFor(slot);
+    const glowAlphaK = 0.45 + liSlot * 1.4; // ~0.45..1.85
+    const glowSizeK = 0.7 + liSlot * 0.7; // ~0.7..1.4
     const glowR = r * (2.8 + pulse * 0.3) * glowSizeK;
     const glow = ctx.createRadialGradient(x, y, 0, x, y, glowR);
     glow.addColorStop(0, rgba(color, Math.min(1, 0.46 * glowAlphaK)));

@@ -23,6 +23,7 @@ interface AppState {
   lightIntensity: number;
   gradient: ColorStop[];
   showConnectors: boolean;
+  lightWave: boolean;
   animate: boolean;
 }
 
@@ -38,6 +39,7 @@ const DEFAULTS: AppState = {
   lightIntensity: 0.5,
   gradient: DEFAULT_GRADIENT,
   showConnectors: true,
+  lightWave: false,
   animate: true,
 };
 
@@ -91,6 +93,10 @@ function readStateFromUrl(): AppState {
     ? params.get("links") === "1"
     : DEFAULTS.showConnectors;
 
+  const lightWave = params.has("wave")
+    ? params.get("wave") === "1"
+    : DEFAULTS.lightWave;
+
   const animate = params.has("animate")
     ? params.get("animate") === "1"
     : DEFAULTS.animate;
@@ -105,6 +111,7 @@ function readStateFromUrl(): AppState {
     lightIntensity,
     gradient,
     showConnectors,
+    lightWave,
     animate,
   };
 }
@@ -130,6 +137,9 @@ function writeStateToUrl(state: AppState) {
   }
   if (state.showConnectors !== DEFAULTS.showConnectors) {
     params.set("links", state.showConnectors ? "1" : "0");
+  }
+  if (state.lightWave !== DEFAULTS.lightWave) {
+    params.set("wave", state.lightWave ? "1" : "0");
   }
   if (state.animate !== DEFAULTS.animate) {
     params.set("animate", state.animate ? "1" : "0");
@@ -169,6 +179,8 @@ export default function App() {
     setState((s) => ({ ...s, gradient }));
   const setShowConnectors = (showConnectors: boolean) =>
     setState((s) => ({ ...s, showConnectors }));
+  const setLightWave = (lightWave: boolean) =>
+    setState((s) => ({ ...s, lightWave }));
   const setAnimate = (animate: boolean) =>
     setState((s) => ({ ...s, animate }));
 
@@ -185,6 +197,7 @@ export default function App() {
           lightIntensity={state.lightIntensity}
           gradient={state.gradient}
           showConnectors={state.showConnectors}
+          lightWave={state.lightWave}
           animate={state.animate}
         />
       </main>
@@ -198,6 +211,7 @@ export default function App() {
         lightIntensity={state.lightIntensity}
         gradient={state.gradient}
         showConnectors={state.showConnectors}
+        lightWave={state.lightWave}
         animate={state.animate}
         onPatternChange={setPattern}
         onStageChange={setStage}
@@ -208,6 +222,7 @@ export default function App() {
         onLightIntensityChange={setLightIntensity}
         onGradientChange={setGradient}
         onShowConnectorsChange={setShowConnectors}
+        onLightWaveChange={setLightWave}
         onAnimateChange={setAnimate}
       />
     </div>

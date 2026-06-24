@@ -24,6 +24,7 @@ interface ControlsProps {
   lightIntensity: number;
   gradient: ColorStop[];
   showConnectors: boolean;
+  lightWave: boolean;
   animate: boolean;
   onPatternChange: (pattern: PatternId) => void;
   onStageChange: (stage: Stage) => void;
@@ -34,6 +35,7 @@ interface ControlsProps {
   onLightIntensityChange: (value: number) => void;
   onGradientChange: (stops: ColorStop[]) => void;
   onShowConnectorsChange: (show: boolean) => void;
+  onLightWaveChange: (on: boolean) => void;
   onAnimateChange: (animate: boolean) => void;
 }
 
@@ -56,6 +58,7 @@ export default function Controls({
   lightIntensity,
   gradient,
   showConnectors,
+  lightWave,
   animate,
   onPatternChange,
   onStageChange,
@@ -66,6 +69,7 @@ export default function Controls({
   onLightIntensityChange,
   onGradientChange,
   onShowConnectorsChange,
+  onLightWaveChange,
   onAnimateChange,
 }: ControlsProps) {
   const colorProgress = Math.min(1, on / FULL_SPECTRUM_AT);
@@ -266,6 +270,14 @@ export default function Controls({
           onChange={(e) => onLightIntensityChange(Number(e.target.value) / 100)}
           aria-label="Light intensity"
         />
+        <label className="toggle toggle--row">
+          <input
+            type="checkbox"
+            checked={lightWave}
+            onChange={(e) => onLightWaveChange(e.target.checked)}
+          />
+          <span>Breathing wave</span>
+        </label>
       </section>
 
       <section className="control-group">
