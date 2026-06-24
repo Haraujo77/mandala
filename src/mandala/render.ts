@@ -56,9 +56,22 @@ export interface RenderOptions {
   tierBands?: boolean;
   /** Draw numeric labels (3, 5, 10, 50) at the tier boundaries. */
   tierLabels?: boolean;
+  /** Show the dollar value instead of the slot count on tier labels. */
+  tierValues?: boolean;
+  /** Color for tier rings + labels, hex string (distinct from off slots). */
+  tierColor?: string;
   time: number;
   animate: boolean;
 }
+
+// Dollar value shown for each milestone tier boundary when values are on.
+const TIER_VALUES: Record<number, string> = {
+  3: "$250",
+  5: "$500",
+  10: "$1,000",
+  50: "$5,000",
+  500: "$50,000",
+};
 
 const TAU = Math.PI * 2;
 
@@ -120,6 +133,38 @@ function fillTaperedLink(
   ctx.fill();
 }
 
+/**
+ * Draw `text` centered on the top of a circle of the given radius, with each
+ * glyph rotated tangent to the circle so the label follows the ring path.
+ * The context must already be translated to the circle's center.
+ */
+function drawTextOnArc(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  radius: number,
+  color: Rgb,
+) {
+  const r = Math.max(radius, 1);
+  const chars = [...text];
+  const widths = chars.map((c) => ctx.measureText(c).width);
+  const total = widths.reduce((a, b) => a + b, 0);
+  // Start at the left edge of the centered span (top of circle = -PI/2).
+  let angle = -Math.PI / 2 - total / 2 / r;
+  for (let i = 0; i < chars.length; i++) {
+    const w = widths[i];
+    const a = angle + w / 2 / r;
+    ctx.save();
+    ctx.rotate(a + Math.PI / 2);
+    ctx.translate(0, -r);
+    ctx.strokeStyle = "rgba(0, 0, 0, 0.85)";
+    ctx.strokeText(chars[i], 0, 0);
+    ctx.fillStyle = rgba(color, 1);
+    ctx.fillText(chars[i], 0, 0);
+    ctx.restore();
+    angle += w / r;
+  }
+}
+
 export function renderMandala(
   ctx: CanvasRenderingContext2D,
   opts: RenderOptions,
@@ -142,11 +187,14 @@ export function renderMandala(
     tierGaps,
     tierBands,
     tierLabels,
+    tierValues,
+    tierColor,
     time,
     animate,
   } = opts;
   const { slots, edges, fit } = view;
   const ghost = offColor ? hexToRgb(offColor) : GHOST_RGB;
+  const tierRgb = tierColor ? hexToRgb(tierColor) : ghost;
 
   drawBackground(ctx, width, height);
   if (slots.length === 0) return;
@@ -328,7 +376,7 @@ export function renderMandala(
   // ---- Tier divider rings --------------------------------------------------
   if (tierRings && boundaryThresholds.length) {
     ctx.globalCompositeOperation = "source-over";
-    ctx.strokeStyle = rgba(ghost, 0.4);
+    ctx.strokeStyle = rgba(tierRgb, 0.55);
     ctx.lineWidth = 1;
     ctx.setLineDash([3, 6]);
     for (const th of boundaryThresholds) {
@@ -458,24 +506,22 @@ export function renderMandala(
   ctx.globalCompositeOperation = "source-over";
 
   // ---- Tier labels ---------------------------------------------------------
-  // Drawn in screen space (no rotation) so the numbers stay upright. Stacked
-  // along the top so they separate by radius (inner tiers near center).
+  // Curved along each ring's path. Drawn unrotated in screen space (the rings
+  // are concentric, so they're identical regardless of ambient rotation).
   if (tierLabels && boundaryThresholds.length) {
-    const fontPx = Math.max(10, S * 0.032);
+    const fontPx = Math.max(10, S * 0.03);
     ctx.save();
-    ctx.font = `600 ${fontPx}px ui-sans-serif, system-ui, -apple-system, sans-serif`;
+    ctx.translate(cx, cy);
+    ctx.font = `700 ${fontPx}px ui-sans-serif, system-ui, -apple-system, sans-serif`;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.lineWidth = Math.max(2, fontPx * 0.28);
     ctx.lineJoin = "round";
+    ctx.lineWidth = Math.max(2, fontPx * 0.3);
     for (const th of boundaryThresholds) {
-      const rr = boundaryRadiusNorm(th) * P;
-      const ly = cy - rr;
-      const label = String(th);
-      ctx.strokeStyle = "rgba(0, 0, 0, 0.85)";
-      ctx.strokeText(label, cx, ly);
-      ctx.fillStyle = rgba(ghost, 1);
-      ctx.fillText(label, cx, ly);
+      const radius = boundaryRadiusNorm(th) * P;
+      if (radius <= 0) continue;
+      const label = tierValues ? TIER_VALUES[th] ?? String(th) : String(th);
+      drawTextOnArc(ctx, label, radius, tierRgb);
     }
     ctx.restore();
   }

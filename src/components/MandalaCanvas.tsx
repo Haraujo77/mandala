@@ -21,6 +21,8 @@ interface MandalaCanvasProps {
   tierGaps: boolean;
   tierBands: boolean;
   tierLabels: boolean;
+  tierValues: boolean;
+  tierColor: string;
   animate: boolean;
 }
 
@@ -41,6 +43,8 @@ export default function MandalaCanvas({
   tierGaps,
   tierBands,
   tierLabels,
+  tierValues,
+  tierColor,
   animate,
 }: MandalaCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -70,6 +74,8 @@ export default function MandalaCanvas({
     tierGaps,
     tierBands,
     tierLabels,
+    tierValues,
+    tierColor,
     animate,
   });
   frameRef.current = {
@@ -88,6 +94,8 @@ export default function MandalaCanvas({
     tierGaps,
     tierBands,
     tierLabels,
+    tierValues,
+    tierColor,
     animate,
   };
 
@@ -149,6 +157,8 @@ export default function MandalaCanvas({
         tierGaps: f.tierGaps,
         tierBands: f.tierBands,
         tierLabels: f.tierLabels,
+        tierValues: f.tierValues,
+        tierColor: f.tierColor,
         time,
         animate: f.animate,
       });

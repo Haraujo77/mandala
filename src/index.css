@@ -427,6 +427,15 @@ input[type="range"]:disabled {
   color: var(--muted);
 }
 
+.toggle--sub {
+  margin-left: 18px;
+}
+
+.toggle--sub.is-disabled {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
 .gradient-stop__remove {
   appearance: none;
   flex: 0 0 auto;

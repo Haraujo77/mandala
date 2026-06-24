@@ -5,6 +5,7 @@ import { isStage, nearestStage, type Stage } from "./mandala/layout";
 import {
   DEFAULT_GRADIENT,
   DEFAULT_OFF_COLOR,
+  DEFAULT_TIER_COLOR,
   parseGradient,
   serializeGradient,
   type ColorStop,
@@ -31,6 +32,8 @@ interface AppState {
   tierGaps: boolean;
   tierBands: boolean;
   tierLabels: boolean;
+  tierValues: boolean;
+  tierColor: string;
   animate: boolean;
 }
 
@@ -53,6 +56,8 @@ const DEFAULTS: AppState = {
   tierGaps: false,
   tierBands: false,
   tierLabels: false,
+  tierValues: false,
+  tierColor: DEFAULT_TIER_COLOR,
   animate: true,
 };
 
@@ -130,6 +135,14 @@ function readStateFromUrl(): AppState {
   const tierLabels = params.has("tlabels")
     ? params.get("tlabels") === "1"
     : DEFAULTS.tierLabels;
+  const tierValues = params.has("tvalues")
+    ? params.get("tvalues") === "1"
+    : DEFAULTS.tierValues;
+
+  const rawTier = (params.get("tcol") ?? "").replace(/^#/, "");
+  const tierColor = /^[0-9a-fA-F]{6}$/.test(rawTier)
+    ? `#${rawTier.toLowerCase()}`
+    : DEFAULTS.tierColor;
 
   const animate = params.has("animate")
     ? params.get("animate") === "1"
@@ -152,6 +165,8 @@ function readStateFromUrl(): AppState {
     tierGaps,
     tierBands,
     tierLabels,
+    tierValues,
+    tierColor,
     animate,
   };
 }
@@ -198,6 +213,12 @@ function writeStateToUrl(state: AppState) {
   }
   if (state.tierLabels !== DEFAULTS.tierLabels) {
     params.set("tlabels", state.tierLabels ? "1" : "0");
+  }
+  if (state.tierValues !== DEFAULTS.tierValues) {
+    params.set("tvalues", state.tierValues ? "1" : "0");
+  }
+  if (state.tierColor !== DEFAULTS.tierColor) {
+    params.set("tcol", state.tierColor.replace(/^#/, ""));
   }
   if (state.animate !== DEFAULTS.animate) {
     params.set("animate", state.animate ? "1" : "0");
@@ -251,6 +272,10 @@ export default function App() {
     setState((s) => ({ ...s, tierBands }));
   const setTierLabels = (tierLabels: boolean) =>
     setState((s) => ({ ...s, tierLabels }));
+  const setTierValues = (tierValues: boolean) =>
+    setState((s) => ({ ...s, tierValues }));
+  const setTierColor = (tierColor: string) =>
+    setState((s) => ({ ...s, tierColor }));
   const setAnimate = (animate: boolean) =>
     setState((s) => ({ ...s, animate }));
 
@@ -274,6 +299,8 @@ export default function App() {
           tierGaps={state.tierGaps}
           tierBands={state.tierBands}
           tierLabels={state.tierLabels}
+          tierValues={state.tierValues}
+          tierColor={state.tierColor}
           animate={state.animate}
         />
       </main>
@@ -294,6 +321,8 @@ export default function App() {
         tierGaps={state.tierGaps}
         tierBands={state.tierBands}
         tierLabels={state.tierLabels}
+        tierValues={state.tierValues}
+        tierColor={state.tierColor}
         animate={state.animate}
         onPatternChange={setPattern}
         onStageChange={setStage}
@@ -311,6 +340,8 @@ export default function App() {
         onTierGapsChange={setTierGaps}
         onTierBandsChange={setTierBands}
         onTierLabelsChange={setTierLabels}
+        onTierValuesChange={setTierValues}
+        onTierColorChange={setTierColor}
         onAnimateChange={setAnimate}
       />
     </div>

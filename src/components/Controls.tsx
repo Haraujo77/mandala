@@ -31,6 +31,8 @@ interface ControlsProps {
   tierGaps: boolean;
   tierBands: boolean;
   tierLabels: boolean;
+  tierValues: boolean;
+  tierColor: string;
   animate: boolean;
   onPatternChange: (pattern: PatternId) => void;
   onStageChange: (stage: Stage) => void;
@@ -48,6 +50,8 @@ interface ControlsProps {
   onTierGapsChange: (on: boolean) => void;
   onTierBandsChange: (on: boolean) => void;
   onTierLabelsChange: (on: boolean) => void;
+  onTierValuesChange: (on: boolean) => void;
+  onTierColorChange: (color: string) => void;
   onAnimateChange: (animate: boolean) => void;
 }
 
@@ -77,6 +81,8 @@ export default function Controls({
   tierGaps,
   tierBands,
   tierLabels,
+  tierValues,
+  tierColor,
   animate,
   onPatternChange,
   onStageChange,
@@ -94,6 +100,8 @@ export default function Controls({
   onTierGapsChange,
   onTierBandsChange,
   onTierLabelsChange,
+  onTierValuesChange,
+  onTierColorChange,
   onAnimateChange,
 }: ControlsProps) {
   const colorProgress = Math.min(1, on / FULL_SPECTRUM_AT);
@@ -442,6 +450,28 @@ export default function Controls({
           />
           <span>Tier labels</span>
         </label>
+        <label
+          className={`toggle toggle--row toggle--sub${tierLabels ? "" : " is-disabled"}`}
+        >
+          <input
+            type="checkbox"
+            checked={tierValues}
+            disabled={!tierLabels}
+            onChange={(e) => onTierValuesChange(e.target.checked)}
+          />
+          <span>Show values ($)</span>
+        </label>
+
+        <div className="gradient-stop gradient-stop--off">
+          <input
+            type="color"
+            className="gradient-stop__color"
+            value={tierColor}
+            onChange={(e) => onTierColorChange(e.target.value)}
+            aria-label="Tier ring and label color"
+          />
+          <span className="off-color-label">Ring &amp; label color</span>
+        </div>
       </section>
 
       <section className="control-group control-group--row">
