@@ -41,6 +41,9 @@ export default function MandalaCanvas({
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const sizeRef = useRef({ width: 0, height: 0, dpr: 1 });
   const [displaySize, setDisplaySize] = useState(0);
+  // Offscreen host for the shader + a small 2D canvas we sample its pixels from.
+  const shaderHostRef = useRef<HTMLDivElement | null>(null);
+  const sampleCanvasRef = useRef<HTMLCanvasElement | null>(null);
 
   const view = useMemo(() => viewForStage(pattern, stage), [pattern, stage]);
   const onCount = Math.max(0, Math.min(on, view.slots.length));
@@ -117,6 +120,31 @@ export default function MandalaCanvas({
       const time = (now - start) / 1000;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       const f = frameRef.current;
+
+      // When the shader is on, grab its current frame and sample it per slot.
+      let shaderSample = null as
+        | { data: Uint8ClampedArray; w: number; h: number }
+        | null;
+      if (f.shaderBg) {
+        const host = shaderHostRef.current;
+        const sc = host?.querySelector("canvas") as HTMLCanvasElement | null;
+        if (sc && sc.width > 0 && sc.height > 0) {
+          let off = sampleCanvasRef.current;
+          if (!off) {
+            off = document.createElement("canvas");
+            off.width = 220;
+            off.height = 220;
+            sampleCanvasRef.current = off;
+          }
+          const octx = off.getContext("2d", { willReadFrequently: true });
+          if (octx) {
+            octx.drawImage(sc, 0, 0, off.width, off.height);
+            const img = octx.getImageData(0, 0, off.width, off.height);
+            shaderSample = { data: img.data, w: off.width, h: off.height };
+          }
+        }
+      }
+
       renderMandala(ctx, {
         width,
         height,
@@ -129,7 +157,8 @@ export default function MandalaCanvas({
         lightIntensity: f.lightIntensity,
         showConnectors: f.showConnectors,
         lightWave: f.lightWave,
-        transparentBg: f.shaderBg,
+        transparentBg: false,
+        shaderSample,
         time,
         animate: f.animate,
       });
@@ -143,12 +172,14 @@ export default function MandalaCanvas({
   return (
     <div className="mandala-stage">
       {shaderBg && (
-        <ShaderBackground
-          style={shaderStyle}
-          gradient={gradient}
-          speed={shaderSpeed}
-          size={displaySize}
-        />
+        <div ref={shaderHostRef} className="shader-host" aria-hidden="true">
+          <ShaderBackground
+            style={shaderStyle}
+            gradient={gradient}
+            speed={shaderSpeed}
+            size={Math.max(64, Math.min(360, displaySize || 256))}
+          />
+        </div>
       )}
       <canvas ref={canvasRef} className="mandala-canvas mandala-canvas--top" />
     </div>

@@ -1,4 +1,3 @@
-import type { CSSProperties } from "react";
 import {
   GrainGradient,
   MeshGradient,
@@ -26,7 +25,7 @@ interface ShaderBackgroundProps {
   style: ShaderStyle;
   gradient: ColorStop[];
   speed: number;
-  /** Square size (px) matching the mandala canvas; clipped to a disc. */
+  /** Square render size (px). Rendered offscreen and sampled per slot. */
   size: number;
 }
 
@@ -47,19 +46,13 @@ export default function ShaderBackground({
   if (size <= 0) return null;
   const colors = colorsFromGradient(gradient);
 
-  const box: CSSProperties = {
-    position: "absolute",
-    top: "50%",
-    left: "50%",
-    transform: "translate(-50%, -50%)",
+  const common = {
     width: size,
     height: size,
-    borderRadius: "50%",
-    overflow: "hidden",
-    zIndex: 0,
-  };
-
-  const common = { width: size, height: size, colors, speed, style: box } as const;
+    colors,
+    speed,
+    style: { display: "block", width: size, height: size },
+  } as const;
 
   switch (style) {
     case "warp":

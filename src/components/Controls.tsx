@@ -421,8 +421,8 @@ export default function Controls({
       <>
       <section className="control-group">
         <div className="control-label">
-          <span>Shader background</span>
-          <span className="control-hint">behind the mandala</span>
+          <span>Shader fill</span>
+          <span className="control-hint">inside each slot</span>
         </div>
         <label className="toggle toggle--row">
           <input
@@ -473,8 +473,9 @@ export default function Controls({
         </div>
 
         <p className="control-note">
-          The shader uses your Color spread gradient. Edit colors in the Design
-          tab and they flow here too.
+          Each slot samples the animated shader at its position, so the colors
+          shimmer through the mandala. It uses your Color spread gradient — edit
+          colors in the Design tab and they flow here too.
         </p>
       </section>
       </>
