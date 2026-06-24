@@ -27,6 +27,10 @@ interface AppState {
   offColor: string;
   showConnectors: boolean;
   lightWave: boolean;
+  tierRings: boolean;
+  tierGaps: boolean;
+  tierBands: boolean;
+  tierLabels: boolean;
   animate: boolean;
 }
 
@@ -45,6 +49,10 @@ const DEFAULTS: AppState = {
   offColor: DEFAULT_OFF_COLOR,
   showConnectors: true,
   lightWave: false,
+  tierRings: false,
+  tierGaps: false,
+  tierBands: false,
+  tierLabels: false,
   animate: true,
 };
 
@@ -110,6 +118,19 @@ function readStateFromUrl(): AppState {
     ? params.get("wave") === "1"
     : DEFAULTS.lightWave;
 
+  const tierRings = params.has("trings")
+    ? params.get("trings") === "1"
+    : DEFAULTS.tierRings;
+  const tierGaps = params.has("tgaps")
+    ? params.get("tgaps") === "1"
+    : DEFAULTS.tierGaps;
+  const tierBands = params.has("tbands")
+    ? params.get("tbands") === "1"
+    : DEFAULTS.tierBands;
+  const tierLabels = params.has("tlabels")
+    ? params.get("tlabels") === "1"
+    : DEFAULTS.tierLabels;
+
   const animate = params.has("animate")
     ? params.get("animate") === "1"
     : DEFAULTS.animate;
@@ -127,6 +148,10 @@ function readStateFromUrl(): AppState {
     offColor,
     showConnectors,
     lightWave,
+    tierRings,
+    tierGaps,
+    tierBands,
+    tierLabels,
     animate,
   };
 }
@@ -161,6 +186,18 @@ function writeStateToUrl(state: AppState) {
   }
   if (state.lightWave !== DEFAULTS.lightWave) {
     params.set("wave", state.lightWave ? "1" : "0");
+  }
+  if (state.tierRings !== DEFAULTS.tierRings) {
+    params.set("trings", state.tierRings ? "1" : "0");
+  }
+  if (state.tierGaps !== DEFAULTS.tierGaps) {
+    params.set("tgaps", state.tierGaps ? "1" : "0");
+  }
+  if (state.tierBands !== DEFAULTS.tierBands) {
+    params.set("tbands", state.tierBands ? "1" : "0");
+  }
+  if (state.tierLabels !== DEFAULTS.tierLabels) {
+    params.set("tlabels", state.tierLabels ? "1" : "0");
   }
   if (state.animate !== DEFAULTS.animate) {
     params.set("animate", state.animate ? "1" : "0");
@@ -206,6 +243,14 @@ export default function App() {
     setState((s) => ({ ...s, showConnectors }));
   const setLightWave = (lightWave: boolean) =>
     setState((s) => ({ ...s, lightWave }));
+  const setTierRings = (tierRings: boolean) =>
+    setState((s) => ({ ...s, tierRings }));
+  const setTierGaps = (tierGaps: boolean) =>
+    setState((s) => ({ ...s, tierGaps }));
+  const setTierBands = (tierBands: boolean) =>
+    setState((s) => ({ ...s, tierBands }));
+  const setTierLabels = (tierLabels: boolean) =>
+    setState((s) => ({ ...s, tierLabels }));
   const setAnimate = (animate: boolean) =>
     setState((s) => ({ ...s, animate }));
 
@@ -225,6 +270,10 @@ export default function App() {
           offColor={state.offColor}
           showConnectors={state.showConnectors}
           lightWave={state.lightWave}
+          tierRings={state.tierRings}
+          tierGaps={state.tierGaps}
+          tierBands={state.tierBands}
+          tierLabels={state.tierLabels}
           animate={state.animate}
         />
       </main>
@@ -241,6 +290,10 @@ export default function App() {
         offColor={state.offColor}
         showConnectors={state.showConnectors}
         lightWave={state.lightWave}
+        tierRings={state.tierRings}
+        tierGaps={state.tierGaps}
+        tierBands={state.tierBands}
+        tierLabels={state.tierLabels}
         animate={state.animate}
         onPatternChange={setPattern}
         onStageChange={setStage}
@@ -254,6 +307,10 @@ export default function App() {
         onOffColorChange={setOffColor}
         onShowConnectorsChange={setShowConnectors}
         onLightWaveChange={setLightWave}
+        onTierRingsChange={setTierRings}
+        onTierGapsChange={setTierGaps}
+        onTierBandsChange={setTierBands}
+        onTierLabelsChange={setTierLabels}
         onAnimateChange={setAnimate}
       />
     </div>

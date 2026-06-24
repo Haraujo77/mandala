@@ -163,7 +163,7 @@ export function rgbToHex({ r, g, b }: Rgb): string {
 }
 
 /** Sample a gradient (any stop order) at t in [0, 1]. */
-function sampleStops(stops: ColorStop[], t: number): Rgb {
+export function sampleStops(stops: ColorStop[], t: number): Rgb {
   if (!stops || stops.length === 0) return { r: 255, g: 255, b: 255 };
   const sorted = [...stops].sort((a, b) => a.pos - b.pos);
   const u = clamp01(t);

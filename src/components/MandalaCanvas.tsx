@@ -17,6 +17,10 @@ interface MandalaCanvasProps {
   offColor: string;
   showConnectors: boolean;
   lightWave: boolean;
+  tierRings: boolean;
+  tierGaps: boolean;
+  tierBands: boolean;
+  tierLabels: boolean;
   animate: boolean;
 }
 
@@ -33,6 +37,10 @@ export default function MandalaCanvas({
   offColor,
   showConnectors,
   lightWave,
+  tierRings,
+  tierGaps,
+  tierBands,
+  tierLabels,
   animate,
 }: MandalaCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -58,6 +66,10 @@ export default function MandalaCanvas({
     offColor,
     showConnectors,
     lightWave,
+    tierRings,
+    tierGaps,
+    tierBands,
+    tierLabels,
     animate,
   });
   frameRef.current = {
@@ -72,6 +84,10 @@ export default function MandalaCanvas({
     offColor,
     showConnectors,
     lightWave,
+    tierRings,
+    tierGaps,
+    tierBands,
+    tierLabels,
     animate,
   };
 
@@ -129,6 +145,10 @@ export default function MandalaCanvas({
         offColor: f.offColor,
         showConnectors: f.showConnectors,
         lightWave: f.lightWave,
+        tierRings: f.tierRings,
+        tierGaps: f.tierGaps,
+        tierBands: f.tierBands,
+        tierLabels: f.tierLabels,
         time,
         animate: f.animate,
       });

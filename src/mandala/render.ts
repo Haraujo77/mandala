@@ -10,13 +10,15 @@
 // The tight golden-angle packing plus the smooth radial color field make the
 // whole figure read as a continuous gradient rather than discrete dots.
 
-import type { Slot, StageView } from "./layout";
+import { STAGES, type Slot, type StageView } from "./layout";
 import {
   colorForSlot,
   GHOST_RGB,
   hexToRgb,
   rgba,
+  sampleStops,
   type Palette,
+  type Rgb,
 } from "./palette";
 
 function clamp01(v: number): number {
@@ -46,6 +48,14 @@ export interface RenderOptions {
   offColor?: string;
   /** Animate light intensity as a staggered, outward breathing ripple. */
   lightWave: boolean;
+  /** Draw faint divider rings at the milestone tier boundaries. */
+  tierRings?: boolean;
+  /** Add radial spacing between tier groups so each tier reads as a band. */
+  tierGaps?: boolean;
+  /** Color each tier as a flat band (sampled at the tier's center). */
+  tierBands?: boolean;
+  /** Draw numeric labels (3, 5, 10, 50) at the tier boundaries. */
+  tierLabels?: boolean;
   time: number;
   animate: boolean;
 }
@@ -128,6 +138,10 @@ export function renderMandala(
     showConnectors,
     offColor,
     lightWave,
+    tierRings,
+    tierGaps,
+    tierBands,
+    tierLabels,
     time,
     animate,
   } = opts;
@@ -213,6 +227,62 @@ export function renderMandala(
   const typical = sorted.length ? sorted[Math.floor(sorted.length / 2)] : 0.08;
   const baseOf = (i: number) => (allowOverlap ? typical : neighbor[i]);
 
+  // ---- Milestone tiers -----------------------------------------------------
+  // Slots are ordered so each milestone (3, 5, 10, 50, 500) is a prefix; tier k
+  // owns slot indices [THRESHOLDS[k-1], THRESHOLDS[k]).
+  const THRESHOLDS = STAGES as readonly number[];
+  const tierOf = (i: number) => {
+    let k = 0;
+    for (const th of THRESHOLDS) {
+      if (i >= th) k++;
+      else break;
+    }
+    return k;
+  };
+  const tierCount = tierOf(n - 1) + 1;
+  const boundaryThresholds = THRESHOLDS.filter((th) => th > 0 && th < n);
+
+  // Optional radial gaps: push each slot outward by a per-tier offset so the
+  // tiers separate into distinct bands.
+  const TIER_GAP = 0.12; // normalized radial gap added per crossed tier
+  const dispX = new Array<number>(n);
+  const dispY = new Array<number>(n);
+  const dispR = new Array<number>(n);
+  for (let i = 0; i < n; i++) {
+    const s = slots[i];
+    if (tierGaps && s.radius > 1e-6) {
+      const scale = (s.radius + TIER_GAP * tierOf(i)) / s.radius;
+      dispX[i] = s.x * scale;
+      dispY[i] = s.y * scale;
+      dispR[i] = s.radius * scale;
+    } else {
+      dispX[i] = s.x;
+      dispY[i] = s.y;
+      dispR[i] = s.radius;
+    }
+  }
+
+  // Per-tier radial extent (in displaced space) -> ring/label boundary radii.
+  const tierMinR = new Array<number>(tierCount).fill(Infinity);
+  const tierMaxR = new Array<number>(tierCount).fill(0);
+  for (let i = 0; i < n; i++) {
+    const k = tierOf(i);
+    if (dispR[i] < tierMinR[k]) tierMinR[k] = dispR[i];
+    if (dispR[i] > tierMaxR[k]) tierMaxR[k] = dispR[i];
+  }
+  const boundaryRadiusNorm = (th: number): number => {
+    const k = tierOf(th);
+    const below = Number.isFinite(tierMaxR[k - 1]) ? tierMaxR[k - 1] : 0;
+    const above = Number.isFinite(tierMinR[k]) ? tierMinR[k] : below;
+    return (below + above) / 2;
+  };
+
+  // Color for a lit slot — a flat per-tier band, or the smooth radial gradient.
+  const litColorOf = (i: number, slot: Slot): Rgb =>
+    tierBands
+      ? sampleStops(palette.stops, (tierOf(i) + 0.5) / tierCount)
+      : colorForSlot(slot, visibleCount, palette);
+
   // Pre-compute each slot's size multiplier and the largest figure extent
   // (position + dot + glow) so we can pick a scale P that never crops.
   const mult = new Array<number>(n);
@@ -222,7 +292,7 @@ export function renderMandala(
     const m = sizeMultiplier(slots[i].radius * radiusNorm, effMode, effAmount);
     mult[i] = m;
     if (m > maxMult) maxMult = m;
-    const ext = slots[i].radius + dotFrac * baseOf(i) * m * glowAllow;
+    const ext = dispR[i] + dotFrac * baseOf(i) * m * glowAllow;
     if (ext > maxExtent) maxExtent = ext;
   }
   let P = maxExtent > 0 ? (MARGIN * S) / maxExtent : S;
@@ -246,14 +316,31 @@ export function renderMandala(
   }
 
   const rOf = (i: number) => rArr[i];
-  const px = (i: number) => slots[i].x * P;
-  const py = (i: number) => slots[i].y * P;
+  const px = (i: number) => dispX[i] * P;
+  const py = (i: number) => dispY[i] * P;
 
   ctx.save();
   ctx.translate(cx, cy);
   ctx.rotate(rotation);
   ctx.lineCap = "round";
   ctx.lineJoin = "round";
+
+  // ---- Tier divider rings --------------------------------------------------
+  if (tierRings && boundaryThresholds.length) {
+    ctx.globalCompositeOperation = "source-over";
+    ctx.strokeStyle = rgba(ghost, 0.4);
+    ctx.lineWidth = 1;
+    ctx.setLineDash([3, 6]);
+    for (const th of boundaryThresholds) {
+      const rr = boundaryRadiusNorm(th) * P;
+      if (rr > 0) {
+        ctx.beginPath();
+        ctx.arc(0, 0, rr, 0, TAU);
+        ctx.stroke();
+      }
+    }
+    ctx.setLineDash([]);
+  }
 
   // ---- Connective mesh -----------------------------------------------------
   // Links taper from thick at a lit slot to thin at an off slot.
@@ -271,8 +358,8 @@ export function renderMandala(
     const bLit = bi < onCount;
 
     if (aLit || bLit) {
-      const ca = aLit ? colorForSlot(a, visibleCount, palette) : ghost;
-      const cb = bLit ? colorForSlot(b, visibleCount, palette) : ghost;
+      const ca = aLit ? litColorOf(ai, a) : ghost;
+      const cb = bLit ? litColorOf(bi, b) : ghost;
       const grad = ctx.createLinearGradient(ax, ay, bx, by);
       grad.addColorStop(0, rgba(ca, aLit ? 0.6 : meshAlpha * 0.6));
       grad.addColorStop(1, rgba(cb, bLit ? 0.6 : meshAlpha * 0.6));
@@ -341,7 +428,7 @@ export function renderMandala(
     const x = px(i);
     const y = py(i);
     const r = rOf(i);
-    const color = colorForSlot(slot, visibleCount, palette);
+    const color = litColorOf(i, slot);
 
     const liSlot = liFor(slot);
     const glowAlphaK = 0.45 + liSlot * 1.4; // ~0.45..1.85
@@ -369,4 +456,27 @@ export function renderMandala(
 
   ctx.restore();
   ctx.globalCompositeOperation = "source-over";
+
+  // ---- Tier labels ---------------------------------------------------------
+  // Drawn in screen space (no rotation) so the numbers stay upright. Stacked
+  // along the top so they separate by radius (inner tiers near center).
+  if (tierLabels && boundaryThresholds.length) {
+    const fontPx = Math.max(10, S * 0.032);
+    ctx.save();
+    ctx.font = `600 ${fontPx}px ui-sans-serif, system-ui, -apple-system, sans-serif`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.lineWidth = Math.max(2, fontPx * 0.28);
+    ctx.lineJoin = "round";
+    for (const th of boundaryThresholds) {
+      const rr = boundaryRadiusNorm(th) * P;
+      const ly = cy - rr;
+      const label = String(th);
+      ctx.strokeStyle = "rgba(0, 0, 0, 0.85)";
+      ctx.strokeText(label, cx, ly);
+      ctx.fillStyle = rgba(ghost, 1);
+      ctx.fillText(label, cx, ly);
+    }
+    ctx.restore();
+  }
 }

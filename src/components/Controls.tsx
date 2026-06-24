@@ -27,6 +27,10 @@ interface ControlsProps {
   offColor: string;
   showConnectors: boolean;
   lightWave: boolean;
+  tierRings: boolean;
+  tierGaps: boolean;
+  tierBands: boolean;
+  tierLabels: boolean;
   animate: boolean;
   onPatternChange: (pattern: PatternId) => void;
   onStageChange: (stage: Stage) => void;
@@ -40,6 +44,10 @@ interface ControlsProps {
   onOffColorChange: (color: string) => void;
   onShowConnectorsChange: (show: boolean) => void;
   onLightWaveChange: (on: boolean) => void;
+  onTierRingsChange: (on: boolean) => void;
+  onTierGapsChange: (on: boolean) => void;
+  onTierBandsChange: (on: boolean) => void;
+  onTierLabelsChange: (on: boolean) => void;
   onAnimateChange: (animate: boolean) => void;
 }
 
@@ -65,6 +73,10 @@ export default function Controls({
   offColor,
   showConnectors,
   lightWave,
+  tierRings,
+  tierGaps,
+  tierBands,
+  tierLabels,
   animate,
   onPatternChange,
   onStageChange,
@@ -78,6 +90,10 @@ export default function Controls({
   onOffColorChange,
   onShowConnectorsChange,
   onLightWaveChange,
+  onTierRingsChange,
+  onTierGapsChange,
+  onTierBandsChange,
+  onTierLabelsChange,
   onAnimateChange,
 }: ControlsProps) {
   const colorProgress = Math.min(1, on / FULL_SPECTRUM_AT);
@@ -387,6 +403,45 @@ export default function Controls({
           Pick a preset or edit the stops. More enabled slots reveal more of the
           gradient — the full spread appears at {FULL_SPECTRUM_AT}+ enabled.
         </p>
+      </section>
+
+      <section className="control-group">
+        <div className="control-label">
+          <span>Tiers</span>
+          <span className="control-hint">3 · 5 · 10 · 50 · 500</span>
+        </div>
+        <label className="toggle toggle--row">
+          <input
+            type="checkbox"
+            checked={tierRings}
+            onChange={(e) => onTierRingsChange(e.target.checked)}
+          />
+          <span>Divider rings</span>
+        </label>
+        <label className="toggle toggle--row">
+          <input
+            type="checkbox"
+            checked={tierGaps}
+            onChange={(e) => onTierGapsChange(e.target.checked)}
+          />
+          <span>Separate into bands (gaps)</span>
+        </label>
+        <label className="toggle toggle--row">
+          <input
+            type="checkbox"
+            checked={tierBands}
+            onChange={(e) => onTierBandsChange(e.target.checked)}
+          />
+          <span>Color per tier</span>
+        </label>
+        <label className="toggle toggle--row">
+          <input
+            type="checkbox"
+            checked={tierLabels}
+            onChange={(e) => onTierLabelsChange(e.target.checked)}
+          />
+          <span>Tier labels</span>
+        </label>
       </section>
 
       <section className="control-group control-group--row">
