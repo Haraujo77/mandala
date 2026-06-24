@@ -1,5 +1,10 @@
 import { STAGES, type Stage } from "../mandala/layout";
-import { FULL_SPECTRUM_AT } from "../mandala/palette";
+import {
+  FULL_SPECTRUM_AT,
+  GRADIENT_PRESETS,
+  serializeGradient,
+  type ColorStop,
+} from "../mandala/palette";
 import { PATTERNS, type PatternId } from "../mandala/patterns";
 import type { SizeMode } from "../mandala/render";
 
@@ -17,8 +22,7 @@ interface ControlsProps {
   sizeAmount: number;
   allowOverlap: boolean;
   lightIntensity: number;
-  hueStart: number;
-  hueEnd: number;
+  gradient: ColorStop[];
   showConnectors: boolean;
   animate: boolean;
   onPatternChange: (pattern: PatternId) => void;
@@ -28,23 +32,18 @@ interface ControlsProps {
   onSizeAmountChange: (amount: number) => void;
   onAllowOverlapChange: (allow: boolean) => void;
   onLightIntensityChange: (value: number) => void;
-  onHueStartChange: (value: number) => void;
-  onHueEndChange: (value: number) => void;
+  onGradientChange: (stops: ColorStop[]) => void;
   onShowConnectorsChange: (show: boolean) => void;
   onAnimateChange: (animate: boolean) => void;
 }
 
-/** CSS gradient preview of a hue range (low -> high). */
-function hueGradient(from: number, to: number): string {
-  const lo = Math.min(from, to);
-  const hi = Math.max(from, to);
-  const steps = 8;
-  const stops: string[] = [];
-  for (let i = 0; i <= steps; i++) {
-    const h = lo + ((hi - lo) * i) / steps;
-    stops.push(`hsl(${h}, 85%, 60%) ${(i / steps) * 100}%`);
-  }
-  return `linear-gradient(90deg, ${stops.join(", ")})`;
+/** CSS background for a gradient preview bar. */
+function gradientCss(stops: ColorStop[]): string {
+  const sorted = [...stops].sort((a, b) => a.pos - b.pos);
+  const parts = sorted.map(
+    (s) => `${s.color} ${Math.round(s.pos * 100)}%`,
+  );
+  return `linear-gradient(90deg, ${parts.join(", ")})`;
 }
 
 export default function Controls({
@@ -55,8 +54,7 @@ export default function Controls({
   sizeAmount,
   allowOverlap,
   lightIntensity,
-  hueStart,
-  hueEnd,
+  gradient,
   showConnectors,
   animate,
   onPatternChange,
@@ -66,13 +64,45 @@ export default function Controls({
   onSizeAmountChange,
   onAllowOverlapChange,
   onLightIntensityChange,
-  onHueStartChange,
-  onHueEndChange,
+  onGradientChange,
   onShowConnectorsChange,
   onAnimateChange,
 }: ControlsProps) {
   const colorProgress = Math.min(1, on / FULL_SPECTRUM_AT);
   const spectrumReached = on >= FULL_SPECTRUM_AT;
+
+  const gradKey = serializeGradient(gradient);
+
+  const setStopColor = (i: number, color: string) => {
+    const next = gradient.map((s, idx) => (idx === i ? { ...s, color } : s));
+    onGradientChange(next);
+  };
+  const setStopPos = (i: number, pos: number) => {
+    const p = Math.max(0, Math.min(1, pos));
+    const next = gradient.map((s, idx) => (idx === i ? { ...s, pos: p } : s));
+    onGradientChange(next);
+  };
+  const removeStop = (i: number) => {
+    if (gradient.length <= 2) return;
+    onGradientChange(gradient.filter((_, idx) => idx !== i));
+  };
+  const addStop = () => {
+    const sorted = [...gradient].sort((a, b) => a.pos - b.pos);
+    // Insert at the widest gap so the new stop lands somewhere useful.
+    let gapStart = 0;
+    let gapEnd = 1;
+    let best = -1;
+    for (let i = 1; i < sorted.length; i++) {
+      const gap = sorted[i].pos - sorted[i - 1].pos;
+      if (gap > best) {
+        best = gap;
+        gapStart = sorted[i - 1].pos;
+        gapEnd = sorted[i].pos;
+      }
+    }
+    const pos = (gapStart + gapEnd) / 2;
+    onGradientChange([...gradient, { pos, color: "#ffffff" }]);
+  };
 
   return (
     <aside className="controls">
@@ -242,7 +272,7 @@ export default function Controls({
         <div className="control-label">
           <span>Color spread</span>
           <span className="control-hint">
-            {spectrumReached ? "full spectrum" : "warming up"}
+            {spectrumReached ? "full gradient" : "warming up"}
           </span>
         </div>
         <div className="spectrum-meter" aria-hidden="true">
@@ -252,45 +282,67 @@ export default function Controls({
           />
         </div>
 
+        <div className="pattern-grid" role="group" aria-label="Gradient preset">
+          {GRADIENT_PRESETS.map((p) => {
+            const active = serializeGradient(p.stops) === gradKey;
+            return (
+              <button
+                key={p.id}
+                type="button"
+                className={`pattern-btn${active ? " is-active" : ""}`}
+                aria-pressed={active}
+                onClick={() => onGradientChange(p.stops.map((s) => ({ ...s })))}
+              >
+                {p.label}
+              </button>
+            );
+          })}
+        </div>
+
         <div
           className="spectrum-preview"
-          style={{ background: hueGradient(hueStart, hueEnd) }}
+          style={{ background: gradientCss(gradient) }}
           aria-hidden="true"
         />
 
-        <div className="subcontrol">
-          <div className="control-label control-label--sub">
-            <span>From</span>
-            <span className="control-value">{Math.round(hueStart)}&deg;</span>
-          </div>
-          <input
-            type="range"
-            min={0}
-            max={360}
-            value={Math.round(hueStart)}
-            onChange={(e) => onHueStartChange(Number(e.target.value))}
-            aria-label="Color spread start hue"
-          />
+        <div className="gradient-stops">
+          {gradient.map((stop, i) => (
+            <div className="gradient-stop" key={i}>
+              <input
+                type="color"
+                className="gradient-stop__color"
+                value={stop.color}
+                onChange={(e) => setStopColor(i, e.target.value)}
+                aria-label={`Stop ${i + 1} color`}
+              />
+              <input
+                type="range"
+                min={0}
+                max={100}
+                value={Math.round(stop.pos * 100)}
+                onChange={(e) => setStopPos(i, Number(e.target.value) / 100)}
+                aria-label={`Stop ${i + 1} position`}
+              />
+              <button
+                type="button"
+                className="gradient-stop__remove"
+                onClick={() => removeStop(i)}
+                disabled={gradient.length <= 2}
+                aria-label={`Remove stop ${i + 1}`}
+              >
+                &times;
+              </button>
+            </div>
+          ))}
         </div>
 
-        <div className="subcontrol">
-          <div className="control-label control-label--sub">
-            <span>To</span>
-            <span className="control-value">{Math.round(hueEnd)}&deg;</span>
-          </div>
-          <input
-            type="range"
-            min={0}
-            max={360}
-            value={Math.round(hueEnd)}
-            onChange={(e) => onHueEndChange(Number(e.target.value))}
-            aria-label="Color spread end hue"
-          />
-        </div>
+        <button type="button" className="ghost-btn ghost-btn--block" onClick={addStop}>
+          Add color stop
+        </button>
 
         <p className="control-note">
-          More enabled slots reveal more of the range above. The full spread
-          appears at {FULL_SPECTRUM_AT}+ enabled.
+          Pick a preset or edit the stops. More enabled slots reveal more of the
+          gradient — the full spread appears at {FULL_SPECTRUM_AT}+ enabled.
         </p>
       </section>
 

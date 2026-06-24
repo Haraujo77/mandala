@@ -2,6 +2,12 @@ import { useEffect, useState } from "react";
 import Controls from "./components/Controls";
 import MandalaCanvas from "./components/MandalaCanvas";
 import { isStage, nearestStage, type Stage } from "./mandala/layout";
+import {
+  DEFAULT_GRADIENT,
+  parseGradient,
+  serializeGradient,
+  type ColorStop,
+} from "./mandala/palette";
 import { isPattern, type PatternId } from "./mandala/patterns";
 import type { SizeMode } from "./mandala/render";
 
@@ -15,8 +21,7 @@ interface AppState {
   sizeAmount: number;
   allowOverlap: boolean;
   lightIntensity: number;
-  hueStart: number;
-  hueEnd: number;
+  gradient: ColorStop[];
   showConnectors: boolean;
   animate: boolean;
 }
@@ -31,15 +36,12 @@ const DEFAULTS: AppState = {
   sizeAmount: 1,
   allowOverlap: false,
   lightIntensity: 0.5,
-  hueStart: 0,
-  hueEnd: 278,
+  gradient: DEFAULT_GRADIENT,
   showConnectors: true,
   animate: true,
 };
 
-function clampHue(v: number, fallback: number): number {
-  return Number.isFinite(v) ? Math.max(0, Math.min(360, Math.round(v))) : fallback;
-}
+const DEFAULT_GRADIENT_KEY = serializeGradient(DEFAULTS.gradient);
 
 function clamp01(v: number): number {
   return Number.isFinite(v) ? Math.max(0, Math.min(1, v)) : 0.5;
@@ -80,12 +82,10 @@ function readStateFromUrl(): AppState {
     ? clamp01(Number(params.get("light")) / 100)
     : DEFAULTS.lightIntensity;
 
-  const hueStart = params.has("h0")
-    ? clampHue(Number(params.get("h0")), DEFAULTS.hueStart)
-    : DEFAULTS.hueStart;
-  const hueEnd = params.has("h1")
-    ? clampHue(Number(params.get("h1")), DEFAULTS.hueEnd)
-    : DEFAULTS.hueEnd;
+  const parsedGradient = params.has("grad")
+    ? parseGradient(params.get("grad") ?? "")
+    : null;
+  const gradient = parsedGradient ?? DEFAULTS.gradient;
 
   const showConnectors = params.has("links")
     ? params.get("links") === "1"
@@ -103,8 +103,7 @@ function readStateFromUrl(): AppState {
     sizeAmount,
     allowOverlap,
     lightIntensity,
-    hueStart,
-    hueEnd,
+    gradient,
     showConnectors,
     animate,
   };
@@ -125,11 +124,9 @@ function writeStateToUrl(state: AppState) {
   if (state.lightIntensity !== DEFAULTS.lightIntensity) {
     params.set("light", String(Math.round(state.lightIntensity * 100)));
   }
-  if (state.hueStart !== DEFAULTS.hueStart) {
-    params.set("h0", String(state.hueStart));
-  }
-  if (state.hueEnd !== DEFAULTS.hueEnd) {
-    params.set("h1", String(state.hueEnd));
+  const gradKey = serializeGradient(state.gradient);
+  if (gradKey !== DEFAULT_GRADIENT_KEY) {
+    params.set("grad", gradKey);
   }
   if (state.showConnectors !== DEFAULTS.showConnectors) {
     params.set("links", state.showConnectors ? "1" : "0");
@@ -168,10 +165,8 @@ export default function App() {
     setState((s) => ({ ...s, allowOverlap }));
   const setLightIntensity = (lightIntensity: number) =>
     setState((s) => ({ ...s, lightIntensity: clamp01(lightIntensity) }));
-  const setHueStart = (hueStart: number) =>
-    setState((s) => ({ ...s, hueStart: clampHue(hueStart, DEFAULTS.hueStart) }));
-  const setHueEnd = (hueEnd: number) =>
-    setState((s) => ({ ...s, hueEnd: clampHue(hueEnd, DEFAULTS.hueEnd) }));
+  const setGradient = (gradient: ColorStop[]) =>
+    setState((s) => ({ ...s, gradient }));
   const setShowConnectors = (showConnectors: boolean) =>
     setState((s) => ({ ...s, showConnectors }));
   const setAnimate = (animate: boolean) =>
@@ -188,8 +183,7 @@ export default function App() {
           sizeAmount={state.sizeAmount}
           allowOverlap={state.allowOverlap}
           lightIntensity={state.lightIntensity}
-          hueStart={state.hueStart}
-          hueEnd={state.hueEnd}
+          gradient={state.gradient}
           showConnectors={state.showConnectors}
           animate={state.animate}
         />
@@ -202,8 +196,7 @@ export default function App() {
         sizeAmount={state.sizeAmount}
         allowOverlap={state.allowOverlap}
         lightIntensity={state.lightIntensity}
-        hueStart={state.hueStart}
-        hueEnd={state.hueEnd}
+        gradient={state.gradient}
         showConnectors={state.showConnectors}
         animate={state.animate}
         onPatternChange={setPattern}
@@ -213,8 +206,7 @@ export default function App() {
         onSizeAmountChange={setSizeAmount}
         onAllowOverlapChange={setAllowOverlap}
         onLightIntensityChange={setLightIntensity}
-        onHueStartChange={setHueStart}
-        onHueEndChange={setHueEnd}
+        onGradientChange={setGradient}
         onShowConnectorsChange={setShowConnectors}
         onAnimateChange={setAnimate}
       />

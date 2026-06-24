@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef } from "react";
 import { viewForStage, type Stage } from "../mandala/layout";
 import type { PatternId } from "../mandala/patterns";
-import { paletteForOn } from "../mandala/palette";
+import { paletteFor, type ColorStop } from "../mandala/palette";
 import { renderMandala, type SizeMode } from "../mandala/render";
 
 interface MandalaCanvasProps {
@@ -12,8 +12,7 @@ interface MandalaCanvasProps {
   sizeAmount: number;
   allowOverlap: boolean;
   lightIntensity: number;
-  hueStart: number;
-  hueEnd: number;
+  gradient: ColorStop[];
   showConnectors: boolean;
   animate: boolean;
 }
@@ -26,8 +25,7 @@ export default function MandalaCanvas({
   sizeAmount,
   allowOverlap,
   lightIntensity,
-  hueStart,
-  hueEnd,
+  gradient,
   showConnectors,
   animate,
 }: MandalaCanvasProps) {
@@ -37,8 +35,8 @@ export default function MandalaCanvas({
   const view = useMemo(() => viewForStage(pattern, stage), [pattern, stage]);
   const onCount = Math.max(0, Math.min(on, view.slots.length));
   const palette = useMemo(
-    () => paletteForOn(onCount, hueStart, hueEnd),
-    [onCount, hueStart, hueEnd],
+    () => paletteFor(gradient, onCount),
+    [onCount, gradient],
   );
 
   // Keep the latest render inputs in a ref so the RAF loop stays stable.
