@@ -11,14 +11,7 @@
 // whole figure read as a continuous gradient rather than discrete dots.
 
 import type { Slot, StageView } from "./layout";
-import { colorForSlot, GHOST_RGB, rgba, type Palette, type Rgb } from "./palette";
-
-/** A sampled frame of the shader (RGBA pixels) used to color slots. */
-export interface ShaderSample {
-  data: Uint8ClampedArray;
-  w: number;
-  h: number;
-}
+import { colorForSlot, GHOST_RGB, rgba, type Palette } from "./palette";
 
 function clamp01(v: number): number {
   return v < 0 ? 0 : v > 1 ? 1 : v;
@@ -35,6 +28,8 @@ export interface RenderOptions {
   sizeMode: SizeMode;
   /** Strength of the center-outward size gradient, 0..1. */
   sizeAmount: number;
+  /** Continuously animate the size gradient grow<->shrink. */
+  sizePulse: boolean;
   /** When false, dots are capped so they never overlap. */
   allowOverlap: boolean;
   /** Brightness/size of the lit slots' glow, 0..1. */
@@ -43,10 +38,6 @@ export interface RenderOptions {
   showConnectors: boolean;
   /** Animate light intensity as a staggered, outward breathing ripple. */
   lightWave: boolean;
-  /** Clear to transparent instead of the dark vignette (for a shader backdrop). */
-  transparentBg: boolean;
-  /** When set, lit slots take their color from this sampled shader frame. */
-  shaderSample?: ShaderSample | null;
   time: number;
   animate: boolean;
 }
@@ -134,19 +125,17 @@ export function renderMandala(
     palette,
     sizeMode,
     sizeAmount,
+    sizePulse,
     allowOverlap,
     lightIntensity,
     showConnectors,
     lightWave,
-    transparentBg,
-    shaderSample,
     time,
     animate,
   } = opts;
   const { slots, edges, fit } = view;
 
-  if (transparentBg) ctx.clearRect(0, 0, width, height);
-  else drawBackground(ctx, width, height);
+  drawBackground(ctx, width, height);
   if (slots.length === 0) return;
 
   const cx = width / 2;
@@ -177,6 +166,23 @@ export function renderMandala(
     ? Math.max(0, Math.min(1, sizeAmount))
     : 0.5;
 
+  // Size pulse: sweep the gradient from full grow -> uniform -> full shrink and
+  // back, continuously. cos() gives a smooth signed amount in [-1, 1] where
+  // +1 = grow 100%, 0 = uniform, -1 = shrink 100%.
+  const SIZE_PULSE_SPEED = 0.6; // ~10.5s for a full grow<->shrink<->grow cycle
+  let effMode = sizeMode;
+  let effAmount = safeAmount;
+  if (sizePulse) {
+    const signed = Math.cos(time * SIZE_PULSE_SPEED);
+    if (signed >= 0) {
+      effMode = "grow";
+      effAmount = signed;
+    } else {
+      effMode = "shrink";
+      effAmount = -signed;
+    }
+  }
+
   const dotFrac = 0.58; // dot radius as a fraction of the spacing
   const glowAllow = 1.55; // reserve a little extra for the soft bloom
 
@@ -204,7 +210,7 @@ export function renderMandala(
   let maxMult = 1e-6;
   let maxExtent = 1e-6;
   for (let i = 0; i < n; i++) {
-    const m = sizeMultiplier(slots[i].radius * radiusNorm, sizeMode, safeAmount);
+    const m = sizeMultiplier(slots[i].radius * radiusNorm, effMode, effAmount);
     mult[i] = m;
     if (m > maxMult) maxMult = m;
     const ext = slots[i].radius + dotFrac * baseOf(i) * m * glowAllow;
@@ -233,22 +239,6 @@ export function renderMandala(
   const px = (i: number) => slots[i].x * P;
   const py = (i: number) => slots[i].y * P;
 
-  // Color for a lit slot: sampled from the shader frame (mapped from the slot's
-  // on-screen pixel) when active, otherwise from the gradient palette.
-  const sampleShader = (i: number): Rgb => {
-    const s = shaderSample as ShaderSample;
-    const X = cx + px(i);
-    const Y = cy + py(i);
-    let ix = Math.round((X / width) * s.w);
-    let iy = Math.round((Y / height) * s.h);
-    ix = ix < 0 ? 0 : ix >= s.w ? s.w - 1 : ix;
-    iy = iy < 0 ? 0 : iy >= s.h ? s.h - 1 : iy;
-    const idx = (iy * s.w + ix) * 4;
-    return { r: s.data[idx], g: s.data[idx + 1], b: s.data[idx + 2] };
-  };
-  const litColor = (slot: Slot, i: number): Rgb =>
-    shaderSample ? sampleShader(i) : colorForSlot(slot, visibleCount, palette);
-
   ctx.save();
   ctx.translate(cx, cy);
   ctx.rotate(rotation);
@@ -271,8 +261,8 @@ export function renderMandala(
     const bLit = bi < onCount;
 
     if (aLit || bLit) {
-      const ca = aLit ? litColor(a, ai) : GHOST_RGB;
-      const cb = bLit ? litColor(b, bi) : GHOST_RGB;
+      const ca = aLit ? colorForSlot(a, visibleCount, palette) : GHOST_RGB;
+      const cb = bLit ? colorForSlot(b, visibleCount, palette) : GHOST_RGB;
       const grad = ctx.createLinearGradient(ax, ay, bx, by);
       grad.addColorStop(0, rgba(ca, aLit ? 0.6 : meshAlpha * 0.6));
       grad.addColorStop(1, rgba(cb, bLit ? 0.6 : meshAlpha * 0.6));
@@ -341,7 +331,7 @@ export function renderMandala(
     const x = px(i);
     const y = py(i);
     const r = rOf(i);
-    const color = litColor(slot, i);
+    const color = colorForSlot(slot, visibleCount, palette);
 
     const liSlot = liFor(slot);
     const glowAlphaK = 0.45 + liSlot * 1.4; // ~0.45..1.85

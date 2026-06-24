@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { STAGES, type Stage } from "../mandala/layout";
 import {
   FULL_SPECTRUM_AT,
@@ -8,7 +7,6 @@ import {
 } from "../mandala/palette";
 import { PATTERNS, type PatternId } from "../mandala/patterns";
 import type { SizeMode } from "../mandala/render";
-import { SHADER_STYLES, type ShaderStyle } from "./ShaderBackground";
 
 const SIZE_MODES: { id: SizeMode; label: string }[] = [
   { id: "uniform", label: "Uniform" },
@@ -22,28 +20,24 @@ interface ControlsProps {
   on: number;
   sizeMode: SizeMode;
   sizeAmount: number;
+  sizePulse: boolean;
   allowOverlap: boolean;
   lightIntensity: number;
   gradient: ColorStop[];
   showConnectors: boolean;
   lightWave: boolean;
-  shaderBg: boolean;
-  shaderStyle: ShaderStyle;
-  shaderSpeed: number;
   animate: boolean;
   onPatternChange: (pattern: PatternId) => void;
   onStageChange: (stage: Stage) => void;
   onOnChange: (on: number) => void;
   onSizeModeChange: (mode: SizeMode) => void;
   onSizeAmountChange: (amount: number) => void;
+  onSizePulseChange: (on: boolean) => void;
   onAllowOverlapChange: (allow: boolean) => void;
   onLightIntensityChange: (value: number) => void;
   onGradientChange: (stops: ColorStop[]) => void;
   onShowConnectorsChange: (show: boolean) => void;
   onLightWaveChange: (on: boolean) => void;
-  onShaderBgChange: (on: boolean) => void;
-  onShaderStyleChange: (style: ShaderStyle) => void;
-  onShaderSpeedChange: (value: number) => void;
   onAnimateChange: (animate: boolean) => void;
 }
 
@@ -62,31 +56,26 @@ export default function Controls({
   on,
   sizeMode,
   sizeAmount,
+  sizePulse,
   allowOverlap,
   lightIntensity,
   gradient,
   showConnectors,
   lightWave,
-  shaderBg,
-  shaderStyle,
-  shaderSpeed,
   animate,
   onPatternChange,
   onStageChange,
   onOnChange,
   onSizeModeChange,
   onSizeAmountChange,
+  onSizePulseChange,
   onAllowOverlapChange,
   onLightIntensityChange,
   onGradientChange,
   onShowConnectorsChange,
   onLightWaveChange,
-  onShaderBgChange,
-  onShaderStyleChange,
-  onShaderSpeedChange,
   onAnimateChange,
 }: ControlsProps) {
-  const [tab, setTab] = useState<"design" | "shader">("design");
   const colorProgress = Math.min(1, on / FULL_SPECTRUM_AT);
   const spectrumReached = on >= FULL_SPECTRUM_AT;
 
@@ -130,29 +119,6 @@ export default function Controls({
         <p className="controls__subtitle">Friends brought to the project</p>
       </header>
 
-      <div className="segmented" role="tablist" aria-label="Control tabs">
-        <button
-          type="button"
-          role="tab"
-          className={`segmented__btn${tab === "design" ? " is-active" : ""}`}
-          aria-selected={tab === "design"}
-          onClick={() => setTab("design")}
-        >
-          Design
-        </button>
-        <button
-          type="button"
-          role="tab"
-          className={`segmented__btn${tab === "shader" ? " is-active" : ""}`}
-          aria-selected={tab === "shader"}
-          onClick={() => setTab("shader")}
-        >
-          Shader
-        </button>
-      </div>
-
-      {tab === "design" && (
-      <>
       <section className="control-group">
         <div className="control-label">
           <span>Pattern</span>
@@ -260,6 +226,7 @@ export default function Controls({
               type="button"
               className={`segmented__btn${m.id === sizeMode ? " is-active" : ""}`}
               aria-pressed={m.id === sizeMode}
+              disabled={sizePulse}
               onClick={() => onSizeModeChange(m.id)}
             >
               {m.label}
@@ -267,7 +234,9 @@ export default function Controls({
           ))}
         </div>
 
-        <div className={`subcontrol${sizeMode === "uniform" ? " is-disabled" : ""}`}>
+        <div
+          className={`subcontrol${sizeMode === "uniform" || sizePulse ? " is-disabled" : ""}`}
+        >
           <div className="control-label control-label--sub">
             <span>Amount</span>
             <span className="control-value">{Math.round(sizeAmount * 100)}%</span>
@@ -277,11 +246,20 @@ export default function Controls({
             min={0}
             max={100}
             value={Math.round(sizeAmount * 100)}
-            disabled={sizeMode === "uniform"}
+            disabled={sizeMode === "uniform" || sizePulse}
             onChange={(e) => onSizeAmountChange(Number(e.target.value) / 100)}
             aria-label="Size gradient amount"
           />
         </div>
+
+        <label className="toggle toggle--row">
+          <input
+            type="checkbox"
+            checked={sizePulse}
+            onChange={(e) => onSizePulseChange(e.target.checked)}
+          />
+          <span>Animate size (grow ↔ shrink)</span>
+        </label>
 
         <label className="toggle toggle--row">
           <input
@@ -414,72 +392,6 @@ export default function Controls({
           <span>Ambient motion</span>
         </label>
       </section>
-      </>
-      )}
-
-      {tab === "shader" && (
-      <>
-      <section className="control-group">
-        <div className="control-label">
-          <span>Shader fill</span>
-          <span className="control-hint">inside each slot</span>
-        </div>
-        <label className="toggle toggle--row">
-          <input
-            type="checkbox"
-            checked={shaderBg}
-            onChange={(e) => onShaderBgChange(e.target.checked)}
-          />
-          <span>Enable shader</span>
-        </label>
-      </section>
-
-      <section className={`control-group${shaderBg ? "" : " is-disabled"}`}>
-        <div className="control-label">
-          <span>Style</span>
-          <span className="control-hint">GPU effect</span>
-        </div>
-        <div className="pattern-grid" role="group" aria-label="Shader style">
-          {SHADER_STYLES.map((s) => (
-            <button
-              key={s.id}
-              type="button"
-              className={`pattern-btn${s.id === shaderStyle ? " is-active" : ""}`}
-              aria-pressed={s.id === shaderStyle}
-              disabled={!shaderBg}
-              onClick={() => onShaderStyleChange(s.id)}
-            >
-              {s.label}
-            </button>
-          ))}
-        </div>
-
-        <div className="subcontrol">
-          <div className="control-label control-label--sub">
-            <span>Speed</span>
-            <span className="control-value">
-              {Math.round((shaderSpeed / 2) * 100)}%
-            </span>
-          </div>
-          <input
-            type="range"
-            min={0}
-            max={100}
-            value={Math.round((shaderSpeed / 2) * 100)}
-            disabled={!shaderBg}
-            onChange={(e) => onShaderSpeedChange((Number(e.target.value) / 100) * 2)}
-            aria-label="Shader speed"
-          />
-        </div>
-
-        <p className="control-note">
-          Each slot samples the animated shader at its position, so the colors
-          shimmer through the mandala. It uses your Color spread gradient — edit
-          colors in the Design tab and they flow here too.
-        </p>
-      </section>
-      </>
-      )}
     </aside>
   );
 }

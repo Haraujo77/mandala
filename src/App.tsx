@@ -10,7 +10,6 @@ import {
 } from "./mandala/palette";
 import { isPattern, type PatternId } from "./mandala/patterns";
 import type { SizeMode } from "./mandala/render";
-import { isShaderStyle, type ShaderStyle } from "./components/ShaderBackground";
 
 const SIZE_MODES: SizeMode[] = ["uniform", "grow", "shrink"];
 
@@ -20,14 +19,12 @@ interface AppState {
   on: number;
   sizeMode: SizeMode;
   sizeAmount: number;
+  sizePulse: boolean;
   allowOverlap: boolean;
   lightIntensity: number;
   gradient: ColorStop[];
   showConnectors: boolean;
   lightWave: boolean;
-  shaderBg: boolean;
-  shaderStyle: ShaderStyle;
-  shaderSpeed: number;
   animate: boolean;
 }
 
@@ -39,14 +36,12 @@ const DEFAULTS: AppState = {
   on: 2,
   sizeMode: "shrink",
   sizeAmount: 1,
+  sizePulse: false,
   allowOverlap: false,
   lightIntensity: 0.5,
   gradient: DEFAULT_GRADIENT,
   showConnectors: true,
   lightWave: false,
-  shaderBg: false,
-  shaderStyle: "mesh",
-  shaderSpeed: 0.6,
   animate: true,
 };
 
@@ -83,6 +78,10 @@ function readStateFromUrl(): AppState {
     ? clamp01(Number(params.get("amt")) / 100)
     : DEFAULTS.sizeAmount;
 
+  const sizePulse = params.has("spulse")
+    ? params.get("spulse") === "1"
+    : DEFAULTS.sizePulse;
+
   const allowOverlap = params.has("overlap")
     ? params.get("overlap") === "1"
     : DEFAULTS.allowOverlap;
@@ -104,17 +103,6 @@ function readStateFromUrl(): AppState {
     ? params.get("wave") === "1"
     : DEFAULTS.lightWave;
 
-  const rawShader = params.get("shader") ?? "";
-  const shaderBg = params.has("shader")
-    ? rawShader === "1" || isShaderStyle(rawShader)
-    : DEFAULTS.shaderBg;
-  const shaderStyle: ShaderStyle = isShaderStyle(rawShader)
-    ? rawShader
-    : DEFAULTS.shaderStyle;
-  const shaderSpeed = params.has("shspd")
-    ? clamp01(Number(params.get("shspd")) / 100) * 2
-    : DEFAULTS.shaderSpeed;
-
   const animate = params.has("animate")
     ? params.get("animate") === "1"
     : DEFAULTS.animate;
@@ -125,14 +113,12 @@ function readStateFromUrl(): AppState {
     on,
     sizeMode,
     sizeAmount,
+    sizePulse,
     allowOverlap,
     lightIntensity,
     gradient,
     showConnectors,
     lightWave,
-    shaderBg,
-    shaderStyle,
-    shaderSpeed,
     animate,
   };
 }
@@ -145,6 +131,9 @@ function writeStateToUrl(state: AppState) {
   if (state.sizeMode !== DEFAULTS.sizeMode) params.set("size", state.sizeMode);
   if (state.sizeAmount !== DEFAULTS.sizeAmount) {
     params.set("amt", String(Math.round(state.sizeAmount * 100)));
+  }
+  if (state.sizePulse !== DEFAULTS.sizePulse) {
+    params.set("spulse", state.sizePulse ? "1" : "0");
   }
   if (state.allowOverlap !== DEFAULTS.allowOverlap) {
     params.set("overlap", state.allowOverlap ? "1" : "0");
@@ -161,12 +150,6 @@ function writeStateToUrl(state: AppState) {
   }
   if (state.lightWave !== DEFAULTS.lightWave) {
     params.set("wave", state.lightWave ? "1" : "0");
-  }
-  if (state.shaderBg) {
-    params.set("shader", state.shaderStyle);
-  }
-  if (state.shaderSpeed !== DEFAULTS.shaderSpeed) {
-    params.set("shspd", String(Math.round((state.shaderSpeed / 2) * 100)));
   }
   if (state.animate !== DEFAULTS.animate) {
     params.set("animate", state.animate ? "1" : "0");
@@ -198,6 +181,8 @@ export default function App() {
     setState((s) => ({ ...s, sizeMode }));
   const setSizeAmount = (sizeAmount: number) =>
     setState((s) => ({ ...s, sizeAmount: clamp01(sizeAmount) }));
+  const setSizePulse = (sizePulse: boolean) =>
+    setState((s) => ({ ...s, sizePulse }));
   const setAllowOverlap = (allowOverlap: boolean) =>
     setState((s) => ({ ...s, allowOverlap }));
   const setLightIntensity = (lightIntensity: number) =>
@@ -208,12 +193,6 @@ export default function App() {
     setState((s) => ({ ...s, showConnectors }));
   const setLightWave = (lightWave: boolean) =>
     setState((s) => ({ ...s, lightWave }));
-  const setShaderBg = (shaderBg: boolean) =>
-    setState((s) => ({ ...s, shaderBg }));
-  const setShaderStyle = (shaderStyle: ShaderStyle) =>
-    setState((s) => ({ ...s, shaderStyle }));
-  const setShaderSpeed = (shaderSpeed: number) =>
-    setState((s) => ({ ...s, shaderSpeed: clamp01(shaderSpeed / 2) * 2 }));
   const setAnimate = (animate: boolean) =>
     setState((s) => ({ ...s, animate }));
 
@@ -226,14 +205,12 @@ export default function App() {
           on={state.on}
           sizeMode={state.sizeMode}
           sizeAmount={state.sizeAmount}
+          sizePulse={state.sizePulse}
           allowOverlap={state.allowOverlap}
           lightIntensity={state.lightIntensity}
           gradient={state.gradient}
           showConnectors={state.showConnectors}
           lightWave={state.lightWave}
-          shaderBg={state.shaderBg}
-          shaderStyle={state.shaderStyle}
-          shaderSpeed={state.shaderSpeed}
           animate={state.animate}
         />
       </main>
@@ -243,28 +220,24 @@ export default function App() {
         on={state.on}
         sizeMode={state.sizeMode}
         sizeAmount={state.sizeAmount}
+        sizePulse={state.sizePulse}
         allowOverlap={state.allowOverlap}
         lightIntensity={state.lightIntensity}
         gradient={state.gradient}
         showConnectors={state.showConnectors}
         lightWave={state.lightWave}
-        shaderBg={state.shaderBg}
-        shaderStyle={state.shaderStyle}
-        shaderSpeed={state.shaderSpeed}
         animate={state.animate}
         onPatternChange={setPattern}
         onStageChange={setStage}
         onOnChange={setOn}
         onSizeModeChange={setSizeMode}
         onSizeAmountChange={setSizeAmount}
+        onSizePulseChange={setSizePulse}
         onAllowOverlapChange={setAllowOverlap}
         onLightIntensityChange={setLightIntensity}
         onGradientChange={setGradient}
         onShowConnectorsChange={setShowConnectors}
         onLightWaveChange={setLightWave}
-        onShaderBgChange={setShaderBg}
-        onShaderStyleChange={setShaderStyle}
-        onShaderSpeedChange={setShaderSpeed}
         onAnimateChange={setAnimate}
       />
     </div>
