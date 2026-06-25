@@ -199,10 +199,12 @@ export function renderSphere(
   let effAmount = safeAmount;
   let pulseBreath = 1;
   if (sizePulse) {
-    const c = Math.cos(time * 0.85);
-    const u = (c + 1) / 2;
-    const eased = u * u * u * (u * (u * 6 - 15) + 10);
-    const signed = eased * 2 - 1;
+    // Match the 2D pulse: ease-in/out on each leg so the breathing slows at the
+    // grown and shrunk extremes but sweeps through the uniform midpoint.
+    const cycle = ((time * 0.85) / TAU) % 1;
+    const half = cycle < 0.5 ? cycle / 0.5 : (cycle - 0.5) / 0.5;
+    const e = half * half * half * (half * (half * 6 - 15) + 10);
+    const signed = cycle < 0.5 ? 1 - 2 * e : -1 + 2 * e;
     if (signed >= 0) {
       effMode = "grow";
       effAmount = signed;
@@ -210,7 +212,7 @@ export function renderSphere(
       effMode = "shrink";
       effAmount = -signed;
     }
-    pulseBreath = 0.72 + 0.28 * eased;
+    pulseBreath = 0.72 + 0.28 * (signed + 1) / 2;
   }
 
   const baseDot = P * (1.05 / Math.sqrt(n));

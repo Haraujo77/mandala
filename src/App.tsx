@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import Controls from "./components/Controls";
 import MandalaCanvas from "./components/MandalaCanvas";
+import RevealCanvas, { type RevealOrder } from "./components/RevealCanvas";
 import Sphere3D from "./components/Sphere3D";
 import { isStage, nearestStage, type Stage } from "./mandala/layout";
 import {
@@ -16,7 +17,9 @@ import type { SizeMode } from "./mandala/render";
 
 const SIZE_MODES: SizeMode[] = ["uniform", "grow", "shrink"];
 
-export type ViewMode = "2d" | "3d";
+export type ViewMode = "2d" | "3d" | "reveal";
+
+const REVEAL_ORDERS: RevealOrder[] = ["outer", "inner", "random"];
 
 interface AppState {
   mode: ViewMode;
@@ -46,6 +49,12 @@ interface AppState {
   rock3d: boolean;
   breathe3d: boolean;
   specular3d: boolean;
+  revealTarget: Stage;
+  revealDuration: number;
+  revealOrder: RevealOrder;
+  revealLoop: boolean;
+  revealPlaying: boolean;
+  revealToken: number;
 }
 
 // The default view (used when no URL params are present). Params are only
@@ -78,6 +87,12 @@ const DEFAULTS: AppState = {
   rock3d: false,
   breathe3d: false,
   specular3d: false,
+  revealTarget: 3,
+  revealDuration: 4,
+  revealOrder: "outer",
+  revealLoop: true,
+  revealPlaying: true,
+  revealToken: 0,
 };
 
 const DEFAULT_GRADIENT_KEY = serializeGradient(DEFAULTS.gradient);
@@ -89,7 +104,9 @@ function clamp01(v: number): number {
 function readStateFromUrl(): AppState {
   const params = new URLSearchParams(window.location.search);
 
-  const mode: ViewMode = params.get("mode") === "3d" ? "3d" : DEFAULTS.mode;
+  const rawMode = params.get("mode");
+  const mode: ViewMode =
+    rawMode === "3d" || rawMode === "reveal" ? rawMode : DEFAULTS.mode;
 
   const rawPattern = params.get("pattern") ?? "";
   const pattern: PatternId = isPattern(rawPattern) ? rawPattern : DEFAULTS.pattern;
@@ -191,6 +208,23 @@ function readStateFromUrl(): AppState {
     ? params.get("mspec") === "1"
     : DEFAULTS.specular3d;
 
+  const rawRTarget = Number(params.get("rtarget"));
+  const revealTarget: Stage = isStage(rawRTarget)
+    ? rawRTarget
+    : Number.isFinite(rawRTarget) && rawRTarget > 0
+      ? nearestStage(rawRTarget)
+      : DEFAULTS.revealTarget;
+  const revealDuration = params.has("rdur")
+    ? Math.max(0.5, Math.min(30, Number(params.get("rdur"))))
+    : DEFAULTS.revealDuration;
+  const rawROrder = params.get("rorder") ?? "";
+  const revealOrder: RevealOrder = (REVEAL_ORDERS as string[]).includes(rawROrder)
+    ? (rawROrder as RevealOrder)
+    : DEFAULTS.revealOrder;
+  const revealLoop = params.has("rloop")
+    ? params.get("rloop") === "1"
+    : DEFAULTS.revealLoop;
+
   return {
     mode,
     pattern,
@@ -219,6 +253,12 @@ function readStateFromUrl(): AppState {
     rock3d,
     breathe3d,
     specular3d,
+    revealTarget,
+    revealDuration,
+    revealOrder,
+    revealLoop,
+    revealPlaying: DEFAULTS.revealPlaying,
+    revealToken: 0,
   };
 }
 
@@ -296,6 +336,18 @@ function writeStateToUrl(state: AppState) {
   if (state.specular3d !== DEFAULTS.specular3d) {
     params.set("mspec", state.specular3d ? "1" : "0");
   }
+  if (state.revealTarget !== DEFAULTS.revealTarget) {
+    params.set("rtarget", String(state.revealTarget));
+  }
+  if (state.revealDuration !== DEFAULTS.revealDuration) {
+    params.set("rdur", String(state.revealDuration));
+  }
+  if (state.revealOrder !== DEFAULTS.revealOrder) {
+    params.set("rorder", state.revealOrder);
+  }
+  if (state.revealLoop !== DEFAULTS.revealLoop) {
+    params.set("rloop", state.revealLoop ? "1" : "0");
+  }
   const query = params.toString();
   const url = query
     ? `${window.location.pathname}?${query}`
@@ -369,11 +421,49 @@ export default function App() {
     setState((s) => ({ ...s, breathe3d }));
   const setSpecular3d = (specular3d: boolean) =>
     setState((s) => ({ ...s, specular3d }));
+  const setRevealTarget = (revealTarget: Stage) =>
+    setState((s) => ({ ...s, revealTarget, revealToken: s.revealToken + 1 }));
+  const setRevealDuration = (revealDuration: number) =>
+    setState((s) => ({
+      ...s,
+      revealDuration: Number.isFinite(revealDuration)
+        ? Math.max(0.5, Math.min(30, revealDuration))
+        : DEFAULTS.revealDuration,
+    }));
+  const setRevealOrder = (revealOrder: RevealOrder) =>
+    setState((s) => ({ ...s, revealOrder, revealToken: s.revealToken + 1 }));
+  const setRevealLoop = (revealLoop: boolean) =>
+    setState((s) => ({ ...s, revealLoop }));
+  const setRevealPlaying = (revealPlaying: boolean) =>
+    setState((s) => ({ ...s, revealPlaying }));
+  const replayReveal = () =>
+    setState((s) => ({
+      ...s,
+      revealPlaying: true,
+      revealToken: s.revealToken + 1,
+    }));
 
   return (
     <div className="app">
       <main className="app__stage">
-        {state.mode === "3d" ? (
+        {state.mode === "reveal" ? (
+          <RevealCanvas
+            pattern={state.pattern}
+            target={state.revealTarget}
+            duration={state.revealDuration}
+            order={state.revealOrder}
+            loop={state.revealLoop}
+            playing={state.revealPlaying}
+            playToken={state.revealToken}
+            gradient={state.gradient}
+            lightIntensity={state.lightIntensity}
+            offColor={state.offColor}
+            opaqueOff={state.opaqueOff}
+            showConnectors={state.showConnectors}
+            animate={state.animate}
+            motionSpeed={state.motionSpeed}
+          />
+        ) : state.mode === "3d" ? (
           <Sphere3D
             count={state.stage}
             on={state.on}
@@ -446,6 +536,11 @@ export default function App() {
         rock3d={state.rock3d}
         breathe3d={state.breathe3d}
         specular3d={state.specular3d}
+        revealTarget={state.revealTarget}
+        revealDuration={state.revealDuration}
+        revealOrder={state.revealOrder}
+        revealLoop={state.revealLoop}
+        revealPlaying={state.revealPlaying}
         onModeChange={setMode}
         onPatternChange={setPattern}
         onStageChange={setStage}
@@ -473,6 +568,12 @@ export default function App() {
         onRock3dChange={setRock3d}
         onBreathe3dChange={setBreathe3d}
         onSpecular3dChange={setSpecular3d}
+        onRevealTargetChange={setRevealTarget}
+        onRevealDurationChange={setRevealDuration}
+        onRevealOrderChange={setRevealOrder}
+        onRevealLoopChange={setRevealLoop}
+        onRevealPlayingChange={setRevealPlaying}
+        onReplayReveal={replayReveal}
       />
     </div>
   );

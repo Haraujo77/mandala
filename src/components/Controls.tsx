@@ -7,12 +7,19 @@ import {
 } from "../mandala/palette";
 import { PATTERNS, type PatternId } from "../mandala/patterns";
 import type { SizeMode } from "../mandala/render";
+import type { RevealOrder } from "./RevealCanvas";
 import type { ViewMode } from "../App";
 
 const SIZE_MODES: { id: SizeMode; label: string }[] = [
   { id: "uniform", label: "Uniform" },
   { id: "grow", label: "Grow" },
   { id: "shrink", label: "Shrink" },
+];
+
+const REVEAL_ORDERS: { id: RevealOrder; label: string }[] = [
+  { id: "outer", label: "Outer in" },
+  { id: "inner", label: "Inner out" },
+  { id: "random", label: "Random" },
 ];
 
 interface ControlsProps {
@@ -43,6 +50,11 @@ interface ControlsProps {
   rock3d: boolean;
   breathe3d: boolean;
   specular3d: boolean;
+  revealTarget: Stage;
+  revealDuration: number;
+  revealOrder: RevealOrder;
+  revealLoop: boolean;
+  revealPlaying: boolean;
   onPatternChange: (pattern: PatternId) => void;
   onStageChange: (stage: Stage) => void;
   onOnChange: (on: number) => void;
@@ -70,6 +82,12 @@ interface ControlsProps {
   onRock3dChange: (on: boolean) => void;
   onBreathe3dChange: (on: boolean) => void;
   onSpecular3dChange: (on: boolean) => void;
+  onRevealTargetChange: (stage: Stage) => void;
+  onRevealDurationChange: (value: number) => void;
+  onRevealOrderChange: (order: RevealOrder) => void;
+  onRevealLoopChange: (on: boolean) => void;
+  onRevealPlayingChange: (on: boolean) => void;
+  onReplayReveal: () => void;
 }
 
 /** CSS background for a gradient preview bar. */
@@ -109,6 +127,11 @@ export default function Controls({
   rock3d,
   breathe3d,
   specular3d,
+  revealTarget,
+  revealDuration,
+  revealOrder,
+  revealLoop,
+  revealPlaying,
   onPatternChange,
   onStageChange,
   onOnChange,
@@ -136,8 +159,16 @@ export default function Controls({
   onRock3dChange,
   onBreathe3dChange,
   onSpecular3dChange,
+  onRevealTargetChange,
+  onRevealDurationChange,
+  onRevealOrderChange,
+  onRevealLoopChange,
+  onRevealPlayingChange,
+  onReplayReveal,
 }: ControlsProps) {
   const is3d = mode === "3d";
+  const isReveal = mode === "reveal";
+  const is2d = mode === "2d";
   const colorProgress = Math.min(1, on / FULL_SPECTRUM_AT);
   const spectrumReached = on >= FULL_SPECTRUM_AT;
 
@@ -181,12 +212,12 @@ export default function Controls({
         <p className="controls__subtitle">Friends brought to the project</p>
       </header>
 
-      <div className="segmented" role="tablist" aria-label="View mode">
+      <div className="segmented segmented--3" role="tablist" aria-label="View mode">
         <button
           type="button"
           role="tab"
-          className={`segmented__btn${!is3d ? " is-active" : ""}`}
-          aria-selected={!is3d}
+          className={`segmented__btn${is2d ? " is-active" : ""}`}
+          aria-selected={is2d}
           onClick={() => onModeChange("2d")}
         >
           2D
@@ -199,6 +230,15 @@ export default function Controls({
           onClick={() => onModeChange("3d")}
         >
           3D
+        </button>
+        <button
+          type="button"
+          role="tab"
+          className={`segmented__btn${isReveal ? " is-active" : ""}`}
+          aria-selected={isReveal}
+          onClick={() => onModeChange("reveal")}
+        >
+          Reveal
         </button>
       </div>
 
@@ -226,6 +266,88 @@ export default function Controls({
       </section>
       )}
 
+      {isReveal && (
+        <section className="control-group">
+          <div className="control-label">
+            <span>Transition</span>
+            <span className="control-hint">500 → target</span>
+          </div>
+          <div className="control-label control-label--sub">
+            <span>End on</span>
+          </div>
+          <div className="segmented" role="group" aria-label="Reveal target stage">
+            {STAGES.filter((s) => s !== 500).map((s) => (
+              <button
+                key={s}
+                type="button"
+                className={`segmented__btn${s === revealTarget ? " is-active" : ""}`}
+                aria-pressed={s === revealTarget}
+                onClick={() => onRevealTargetChange(s)}
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+
+          <div className="control-label control-label--sub">
+            <span>Disappear</span>
+          </div>
+          <div className="segmented segmented--3" role="group" aria-label="Reveal order">
+            {REVEAL_ORDERS.map((o) => (
+              <button
+                key={o.id}
+                type="button"
+                className={`segmented__btn${o.id === revealOrder ? " is-active" : ""}`}
+                aria-pressed={o.id === revealOrder}
+                onClick={() => onRevealOrderChange(o.id)}
+              >
+                {o.label}
+              </button>
+            ))}
+          </div>
+
+          <div className="control-label control-label--sub">
+            <span>Duration</span>
+            <span className="control-value">{revealDuration.toFixed(1)}s</span>
+          </div>
+          <input
+            type="range"
+            min={5}
+            max={120}
+            value={Math.round(revealDuration * 10)}
+            onChange={(e) => onRevealDurationChange(Number(e.target.value) / 10)}
+            aria-label="Reveal duration (seconds)"
+          />
+
+          <div className="control-row">
+            <button
+              type="button"
+              className="ghost-btn"
+              onClick={onReplayReveal}
+            >
+              Replay
+            </button>
+            <button
+              type="button"
+              className="ghost-btn"
+              onClick={() => onRevealPlayingChange(!revealPlaying)}
+            >
+              {revealPlaying ? "Pause" : "Play"}
+            </button>
+          </div>
+
+          <label className="toggle toggle--row">
+            <input
+              type="checkbox"
+              checked={revealLoop}
+              onChange={(e) => onRevealLoopChange(e.target.checked)}
+            />
+            <span>Loop (ping-pong)</span>
+          </label>
+        </section>
+      )}
+
+      {!isReveal && (
       <section className="control-group">
         <div className="control-label">
           <span>Form</span>
@@ -247,7 +369,9 @@ export default function Controls({
           ))}
         </div>
       </section>
+      )}
 
+      {!isReveal && (
       <section className="control-group">
         <div className="control-label">
           <span>Enabled</span>
@@ -300,7 +424,9 @@ export default function Controls({
           </div>
         </div>
       </section>
+      )}
 
+      {!isReveal && (
       <section className="control-group">
         <div className="control-label">
           <span>Slot size</span>
@@ -361,6 +487,7 @@ export default function Controls({
         </label>
         )}
       </section>
+      )}
 
       <section className="control-group">
         <div className="control-label">
@@ -485,7 +612,7 @@ export default function Controls({
         </p>
       </section>
 
-      {!is3d && (
+      {is2d && (
       <section className="control-group">
         <div className="control-label">
           <span>Tiers</span>

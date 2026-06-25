@@ -64,6 +64,12 @@ export interface RenderOptions {
   tierValues?: boolean;
   /** Color for tier rings + labels, hex string (distinct from off slots). */
   tierColor?: string;
+  /**
+   * Optional per-slot presence in [0,1] (length === slots.length). 1 = fully
+   * shown; 0 = gone. Drives the Reveal transition: slots fade + shrink out as
+   * their presence drops. Positions and the auto-fit are unaffected.
+   */
+  presence?: number[];
   time: number;
   animate: boolean;
 }
@@ -194,11 +200,15 @@ export function renderMandala(
     tierLabels,
     tierValues,
     tierColor,
+    presence,
     time,
     animate,
     motionSpeed,
   } = opts;
   const { slots, edges, fit } = view;
+  const presOf = (i: number) =>
+    presence && Number.isFinite(presence[i]) ? clamp01(presence[i]) : 1;
+  const PRES_EPS = 0.004;
   const ghost = offColor ? hexToRgb(offColor) : GHOST_RGB;
   const tierRgb = tierColor ? hexToRgb(tierColor) : ghost;
 
@@ -248,18 +258,23 @@ export function renderMandala(
   let pulseBreath = 1;
   let posBreath = 1;
   if (sizePulse) {
-    // A pure sine sweeps continuously from full grow to full shrink and back at
-    // an even pace — it passes straight through the uniform midpoint instead of
-    // easing/lingering there, so the breathing feels smooth and never "stops".
-    const s = Math.sin(time * SIZE_PULSE_SPEED); // -1..1: +grow, -shrink
-    if (s >= 0) {
+    // One full grow -> shrink -> grow cycle, with ease-in/out applied to each
+    // leg. This slows the motion smoothly at the grown and shrunk extremes
+    // (most visible on the single-ring 3/5 stages) while still sweeping briskly
+    // through the uniform midpoint — so it eases at the ends without "stopping"
+    // in the middle.
+    const cycle = ((time * SIZE_PULSE_SPEED) / TAU) % 1; // 0..1
+    const half = cycle < 0.5 ? cycle / 0.5 : (cycle - 0.5) / 0.5; // 0..1 per leg
+    const e = half * half * half * (half * (half * 6 - 15) + 10); // smootherstep
+    const signed = cycle < 0.5 ? 1 - 2 * e : -1 + 2 * e; // +1 grow .. -1 shrink
+    if (signed >= 0) {
       effMode = "grow";
-      effAmount = s;
+      effAmount = signed;
     } else {
       effMode = "shrink";
-      effAmount = -s;
+      effAmount = -signed;
     }
-    const u = (s + 1) / 2; // 0..1
+    const u = (signed + 1) / 2; // 0..1
     // grow extreme -> 1.0 (largest), shrink extreme -> 0.72 (smallest).
     pulseBreath = 0.72 + 0.28 * u;
     // A gentle, uniform radial drift so the slots actually gather and spread a
@@ -382,6 +397,9 @@ export function renderMandala(
   for (let i = 0; i < n; i++) {
     let r = dotFrac * baseOf(i) * mult[i] * P * overlapScale * pulseBreath;
     r = Math.min(r, S * 0.18); // never let a single dot dominate the frame
+    // Disappearing slots shrink as they fade (eased presence -> radius).
+    const pr = presOf(i);
+    if (pr < 1) r *= 0.35 + 0.65 * pr;
     rArr[i] = Number.isFinite(r) && r > 0 ? r : 0.5;
   }
 
@@ -418,6 +436,9 @@ export function renderMandala(
   const litHalf = (i: number) => Math.max(1, rOf(i) * 0.16);
   const offHalf = 0.5;
   for (const [ai, bi] of showConnectors ? edges : []) {
+    const linkPres = Math.min(presOf(ai), presOf(bi));
+    if (linkPres < PRES_EPS) continue;
+    ctx.globalAlpha = linkPres;
     const a = slots[ai];
     const b = slots[bi];
     const ax = px(ai);
@@ -452,9 +473,13 @@ export function renderMandala(
       ctx.stroke();
     }
   }
+  ctx.globalAlpha = 1;
 
   // ---- Ghost slots (disabled) ---------------------------------------------
   for (let i = onCount; i < slots.length; i++) {
+    const pr = presOf(i);
+    if (pr < PRES_EPS) continue;
+    ctx.globalAlpha = pr;
     const x = px(i);
     const y = py(i);
     const r = rOf(i);
@@ -486,6 +511,7 @@ export function renderMandala(
       ctx.stroke();
     }
   }
+  ctx.globalAlpha = 1;
 
   // ---- Lit slots (enabled) -------------------------------------------------
   // Light intensity scales the bloom's brightness and reach.
@@ -506,6 +532,9 @@ export function renderMandala(
   };
   ctx.globalCompositeOperation = "lighter";
   for (let i = 0; i < onCount && i < slots.length; i++) {
+    const pr = presOf(i);
+    if (pr < PRES_EPS) continue;
+    ctx.globalAlpha = pr;
     const slot = slots[i];
     const x = px(i);
     const y = py(i);
