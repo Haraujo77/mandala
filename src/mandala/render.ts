@@ -345,10 +345,19 @@ export function renderMandala(
   let maxMult = 1e-6;
   let maxExtent = 1e-6;
   for (let i = 0; i < n; i++) {
-    const m = sizeMultiplier(slots[i].radius * radiusNorm, effMode, effAmount);
+    const rNorm = slots[i].radius * radiusNorm;
+    const m = sizeMultiplier(rNorm, effMode, effAmount);
     mult[i] = m;
     if (m > maxMult) maxMult = m;
-    const ext = dispR[i] + dotFrac * baseOf(i) * m * glowAllow;
+    // Fit to a frame-stable dot size. While the size pulse animates, the actual
+    // multiplier swings each frame; if we fit to it, the auto-fit rescales and
+    // the slot positions visibly drift apart and back (very pronounced on the
+    // 3/5 stages where the dot is a big share of the figure). Reserving the
+    // worst-case size the slot ever reaches keeps P — and the positions — fixed,
+    // so only the dots breathe.
+    const tN = rNorm < 0 ? 0 : rNorm > 1 ? 1 : rNorm;
+    const fitM = sizePulse ? 1 + MAX_AMP * Math.abs(2 * tN - 1) : m;
+    const ext = dispR[i] + dotFrac * baseOf(i) * fitM * glowAllow;
     if (ext > maxExtent) maxExtent = ext;
   }
   let P = maxExtent > 0 ? (MARGIN * S) / maxExtent : S;
