@@ -38,6 +38,12 @@ export interface RenderOptions {
   sizeAmount: number;
   /** Continuously animate the size gradient grow<->shrink. */
   sizePulse: boolean;
+  /**
+   * Scales the size-pulse effect, 0..1 (default 1). 0 == fully neutral (uniform,
+   * no breath), so callers can ramp the pulse in smoothly. Only used when
+   * `sizePulse` is on.
+   */
+  sizePulseAmp?: number;
   /** Global speed multiplier for ambient motion (1 = base). */
   motionSpeed?: number;
   /** When false, dots are capped so they never overlap. */
@@ -192,6 +198,7 @@ export function renderMandala(
     sizeMode,
     sizeAmount,
     sizePulse,
+    sizePulseAmp,
     allowOverlap,
     lightIntensity,
     showConnectors,
@@ -273,19 +280,22 @@ export function renderMandala(
     const half = cycle < 0.5 ? cycle / 0.5 : (cycle - 0.5) / 0.5; // 0..1 per leg
     const e = half * half * half * (half * (half * 6 - 15) + 10); // smootherstep
     const signed = cycle < 0.5 ? 1 - 2 * e : -1 + 2 * e; // +1 grow .. -1 shrink
+    // Amplitude lets callers ramp the pulse in from the neutral (uniform) state
+    // so it never snaps on mid-swing.
+    const amp = Number.isFinite(sizePulseAmp) ? clamp01(sizePulseAmp as number) : 1;
     if (signed >= 0) {
       effMode = "grow";
-      effAmount = signed;
+      effAmount = signed * amp;
     } else {
       effMode = "shrink";
-      effAmount = -signed;
+      effAmount = -signed * amp;
     }
     const u = (signed + 1) / 2; // 0..1
     // grow extreme -> 1.0 (largest), shrink extreme -> 0.72 (smallest).
-    pulseBreath = 0.72 + 0.28 * u;
+    pulseBreath = 1 + (0.72 + 0.28 * u - 1) * amp;
     // A gentle, uniform radial drift so the slots actually gather and spread a
     // little (kept small + stage-independent so the 3/5 stages don't fly apart).
-    posBreath = 1 + Math.sin(time * SIZE_PULSE_SPEED * 0.5) * 0.05;
+    posBreath = 1 + Math.sin(time * SIZE_PULSE_SPEED * 0.5) * 0.05 * amp;
   }
 
   const dotFrac = 0.58; // dot radius as a fraction of the spacing

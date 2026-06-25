@@ -240,8 +240,12 @@ export default function RevealCanvas({
         tau = Math.min(phase, 1);
       }
       // With ping-pong off, once the shape has fully assembled it breathes with
-      // the 2D size animation (grow <-> shrink).
+      // the 2D size animation (grow <-> shrink). Ramp the pulse in from neutral
+      // over ~1.2s so it eases in instead of snapping on mid-swing.
       const settled = !f.loop && phase >= 1;
+      const pulseAmp = settled
+        ? clamp01((progressRef.current - dur) / 1.2)
+        : 0;
 
       const { bloom, targetView, ranks, slots, neighbor, view } = f.morph;
       const n = slots.length;
@@ -291,6 +295,7 @@ export default function RevealCanvas({
         sizeMode: settled ? "shrink" : "uniform",
         sizeAmount: settled ? 1 : 0,
         sizePulse: settled,
+        sizePulseAmp: pulseAmp,
         motionSpeed: f.motionSpeed,
         allowOverlap: false,
         lightIntensity: f.lightIntensity,
