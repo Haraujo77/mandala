@@ -70,6 +70,10 @@ export interface RenderOptions {
    * their presence drops. Positions and the auto-fit are unaffected.
    */
   presence?: number[];
+  /** Optional second mesh, cross-faded with `edges` via `edgeMix` (Reveal). */
+  edges2?: Array<[number, number]>;
+  /** 0 = draw `edges` only, 1 = draw `edges2` only; between = cross-fade. */
+  edgeMix?: number;
   time: number;
   animate: boolean;
 }
@@ -201,6 +205,8 @@ export function renderMandala(
     tierValues,
     tierColor,
     presence,
+    edges2,
+    edgeMix,
     time,
     animate,
     motionSpeed,
@@ -435,42 +441,57 @@ export function renderMandala(
   ctx.globalCompositeOperation = "source-over";
   const litHalf = (i: number) => Math.max(1, rOf(i) * 0.16);
   const offHalf = 0.5;
-  for (const [ai, bi] of showConnectors ? edges : []) {
-    const linkPres = Math.min(presOf(ai), presOf(bi));
-    if (linkPres < PRES_EPS) continue;
-    ctx.globalAlpha = linkPres;
-    const a = slots[ai];
-    const b = slots[bi];
-    const ax = px(ai);
-    const ay = py(ai);
-    const bx = px(bi);
-    const by = py(bi);
-    const aLit = ai < onCount;
-    const bLit = bi < onCount;
+  const drawEdges = (
+    edgeList: Array<[number, number]>,
+    alphaMul: number,
+  ) => {
+    if (alphaMul <= 0.001) return;
+    for (const [ai, bi] of edgeList) {
+      if (ai >= slots.length || bi >= slots.length) continue;
+      const linkPres = Math.min(presOf(ai), presOf(bi)) * alphaMul;
+      if (linkPres < PRES_EPS) continue;
+      ctx.globalAlpha = linkPres;
+      const a = slots[ai];
+      const b = slots[bi];
+      const ax = px(ai);
+      const ay = py(ai);
+      const bx = px(bi);
+      const by = py(bi);
+      const aLit = ai < onCount;
+      const bLit = bi < onCount;
 
-    if (aLit || bLit) {
-      const ca = aLit ? litColorOf(ai, a) : ghost;
-      const cb = bLit ? litColorOf(bi, b) : ghost;
-      const grad = ctx.createLinearGradient(ax, ay, bx, by);
-      grad.addColorStop(0, rgba(ca, aLit ? 0.6 : meshAlpha * 0.6));
-      grad.addColorStop(1, rgba(cb, bLit ? 0.6 : meshAlpha * 0.6));
-      ctx.fillStyle = grad;
-      fillTaperedLink(
-        ctx,
-        ax,
-        ay,
-        bx,
-        by,
-        aLit ? litHalf(ai) : offHalf,
-        bLit ? litHalf(bi) : offHalf,
-      );
+      if (aLit || bLit) {
+        const ca = aLit ? litColorOf(ai, a) : ghost;
+        const cb = bLit ? litColorOf(bi, b) : ghost;
+        const grad = ctx.createLinearGradient(ax, ay, bx, by);
+        grad.addColorStop(0, rgba(ca, aLit ? 0.6 : meshAlpha * 0.6));
+        grad.addColorStop(1, rgba(cb, bLit ? 0.6 : meshAlpha * 0.6));
+        ctx.fillStyle = grad;
+        fillTaperedLink(
+          ctx,
+          ax,
+          ay,
+          bx,
+          by,
+          aLit ? litHalf(ai) : offHalf,
+          bLit ? litHalf(bi) : offHalf,
+        );
+      } else {
+        ctx.strokeStyle = rgba(ghost, meshAlpha * 0.45);
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(ax, ay);
+        ctx.lineTo(bx, by);
+        ctx.stroke();
+      }
+    }
+  };
+  if (showConnectors) {
+    if (edges2 && edgeMix !== undefined) {
+      drawEdges(edges, 1 - edgeMix);
+      drawEdges(edges2, edgeMix);
     } else {
-      ctx.strokeStyle = rgba(ghost, meshAlpha * 0.45);
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo(ax, ay);
-      ctx.lineTo(bx, by);
-      ctx.stroke();
+      drawEdges(edges, 1);
     }
   }
   ctx.globalAlpha = 1;

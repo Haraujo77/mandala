@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef } from "react";
-import { viewForStage, type StageView } from "../mandala/layout";
+import { viewForStage, type Slot, type Stage, type StageView } from "../mandala/layout";
 import type { PatternId } from "../mandala/patterns";
 import { paletteFor, type ColorStop } from "../mandala/palette";
 import { renderMandala } from "../mandala/render";
@@ -9,7 +9,7 @@ export type RevealOrder = "outer" | "inner" | "random";
 interface RevealCanvasProps {
   pattern: PatternId;
   /** How many slots remain at the end of the transition (the target stage). */
-  target: number;
+  target: Stage;
   /** Seconds for a full 500 -> target sweep. */
   duration: number;
   /** Disappearance order of the removed slots. */
@@ -51,19 +51,19 @@ function hash01(i: number): number {
  * Only slots with index >= target are removable; kept slots get rank 0 (unused).
  */
 function computeRanks(
-  view: StageView,
+  bloom: StageView,
   target: number,
   order: RevealOrder,
 ): Float64Array {
-  const n = view.slots.length;
+  const n = bloom.slots.length;
   const ranks = new Float64Array(n);
   const removable: number[] = [];
   for (let i = target; i < n; i++) removable.push(i);
 
   if (order === "outer") {
-    removable.sort((a, b) => view.slots[b].radius - view.slots[a].radius);
+    removable.sort((a, b) => bloom.slots[b].radius - bloom.slots[a].radius);
   } else if (order === "inner") {
-    removable.sort((a, b) => view.slots[a].radius - view.slots[b].radius);
+    removable.sort((a, b) => bloom.slots[a].radius - bloom.slots[b].radius);
   } else {
     removable.sort((a, b) => hash01(a) - hash01(b));
   }
@@ -73,6 +73,18 @@ function computeRanks(
     ranks[idx] = m > 1 ? k / (m - 1) : 0;
   });
   return ranks;
+}
+
+interface MorphData {
+  bloom: StageView;
+  targetView: StageView;
+  ranks: Float64Array;
+  /** Mutable working slots (start as a copy of the bloom layout). */
+  slots: Slot[];
+  /** Mutable working per-slot spacing. */
+  neighbor: number[];
+  /** Stable view object handed to the renderer (slots/neighbor mutate in place). */
+  view: StageView;
 }
 
 export default function RevealCanvas({
@@ -94,24 +106,39 @@ export default function RevealCanvas({
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const sizeRef = useRef({ width: 0, height: 0, dpr: 1 });
 
-  const view = useMemo(() => viewForStage(pattern, FULL), [pattern]);
-  const palette = useMemo(
-    () => paletteFor(gradient, view.slots.length),
-    [gradient, view.slots.length],
-  );
-  const ranks = useMemo(
-    () => computeRanks(view, target, order),
-    [view, target, order],
-  );
+  const palette = useMemo(() => paletteFor(gradient, FULL), [gradient]);
 
-  // Accumulated playback seconds (only advances while playing).
+  // Everything tied to (pattern, target): the two layouts being morphed, the
+  // disappearance ranks, and mutable working buffers reused every frame.
+  const morph = useMemo<MorphData>(() => {
+    const bloom = viewForStage(pattern, FULL);
+    const targetView = viewForStage(pattern, target);
+    const slots = bloom.slots.map((s) => ({ ...s }));
+    const neighbor = bloom.neighbor.slice();
+    const view: StageView = {
+      slots,
+      edges: bloom.edges,
+      fit: bloom.fit,
+      dotRadius: bloom.dotRadius,
+      spacing: bloom.spacing,
+      neighbor,
+    };
+    return {
+      bloom,
+      targetView,
+      ranks: computeRanks(bloom, target, order),
+      slots,
+      neighbor,
+      view,
+    };
+  }, [pattern, target, order]);
+
   const progressRef = useRef(0);
   const lastTokenRef = useRef(playToken);
 
   const frameRef = useRef({
-    view,
+    morph,
     palette,
-    ranks,
     target,
     duration,
     loop,
@@ -124,9 +151,8 @@ export default function RevealCanvas({
     motionSpeed,
   });
   frameRef.current = {
-    view,
+    morph,
     palette,
-    ranks,
     target,
     duration,
     loop,
@@ -139,7 +165,6 @@ export default function RevealCanvas({
     motionSpeed,
   };
 
-  // Restart whenever the play token changes.
   useEffect(() => {
     if (lastTokenRef.current !== playToken) {
       lastTokenRef.current = playToken;
@@ -179,7 +204,7 @@ export default function RevealCanvas({
     let raf = 0;
     const start = performance.now();
     let lastNow = start;
-    const presence = new Array<number>(view.slots.length).fill(1);
+    const presence = new Array<number>(FULL).fill(1);
 
     const draw = (now: number) => {
       const { width, height, dpr } = sizeRef.current;
@@ -194,7 +219,7 @@ export default function RevealCanvas({
 
       const dur = Math.max(0.2, f.duration);
       const phase = progressRef.current / dur;
-      // tau: 0 = full 500, 1 = only `target` remain.
+      // tau: 0 = full 500 bloom, 1 = only the target layout remains.
       let tau: number;
       if (f.loop) {
         const p = phase % 2;
@@ -203,23 +228,42 @@ export default function RevealCanvas({
         tau = Math.min(phase, 1);
       }
 
-      const n = f.view.slots.length;
+      const { bloom, targetView, ranks, slots, neighbor, view } = f.morph;
+      const n = slots.length;
+      const me = smootherstep(tau); // eased position/mesh morph
+      const tn = targetView.slots.length;
+
+      // Survivors (indices < target) ease from their bloom position + spacing to
+      // the target layout's position + spacing, so the arrival is exactly the 2D
+      // stage shape (not just the bloom with slots removed).
+      for (let i = 0; i < tn; i++) {
+        const bs = bloom.slots[i];
+        const ts = targetView.slots[i];
+        const sx = bs.x + (ts.x - bs.x) * me;
+        const sy = bs.y + (ts.y - bs.y) * me;
+        slots[i].x = sx;
+        slots[i].y = sy;
+        slots[i].radius = bs.radius + (ts.radius - bs.radius) * me;
+        slots[i].angle = Math.atan2(sy, sx);
+        neighbor[i] = bloom.neighbor[i] + (targetView.neighbor[i] - bloom.neighbor[i]) * me;
+      }
+
+      // Presence: kept slots always 1; removed slots fade out on a stagger.
       if (presence.length !== n) presence.length = n;
       for (let i = 0; i < n; i++) {
-        if (i < f.target) {
+        if (i < tn) {
           presence[i] = 1;
           continue;
         }
-        const startAt = f.ranks[i] * (1 - WINDOW);
-        const local = clamp01((tau - startAt) / WINDOW);
-        presence[i] = 1 - smootherstep(local);
+        const startAt = ranks[i] * (1 - WINDOW);
+        presence[i] = 1 - smootherstep(clamp01((tau - startAt) / WINDOW));
       }
 
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       renderMandala(ctx, {
         width,
         height,
-        view: f.view,
+        view,
         onCount: n, // every present slot is lit (a full, colored bloom)
         palette: f.palette,
         sizeMode: "uniform",
@@ -233,6 +277,8 @@ export default function RevealCanvas({
         opaqueOff: f.opaqueOff,
         lightWave: false,
         presence,
+        edges2: targetView.edges,
+        edgeMix: me,
         time,
         animate: f.animate,
       });
@@ -241,7 +287,7 @@ export default function RevealCanvas({
 
     raf = requestAnimationFrame(draw);
     return () => cancelAnimationFrame(raf);
-  }, [view.slots.length]);
+  }, []);
 
   return (
     <div className="mandala-stage">
