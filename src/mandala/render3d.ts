@@ -70,6 +70,18 @@ export interface RenderSphereOptions {
   sizePulse: boolean;
   time: number;
   animate: boolean;
+  /** Global speed multiplier for all ambient motion (1 = base). */
+  motionSpeed?: number;
+  /** Continuous yaw rotation around the vertical axis. */
+  spin?: boolean;
+  /** Slow camera "nod" (tilt rock) for kinetic-depth readability. */
+  nod?: boolean;
+  /** Rock the yaw back and forth instead of (or with) a full spin. */
+  rock?: boolean;
+  /** Gentle in/out depth breathing of the whole dome. */
+  depthBreath?: boolean;
+  /** A soft specular highlight that drifts across the surface. */
+  specular?: boolean;
 }
 
 export function renderSphere(
@@ -90,6 +102,12 @@ export function renderSphere(
     sizePulse,
     time,
     animate,
+    motionSpeed,
+    spin: spinOn = true,
+    nod = true,
+    rock = false,
+    depthBreath = false,
+    specular = false,
   } = opts;
 
   ctx.fillStyle = "#000000";
@@ -101,7 +119,13 @@ export function renderSphere(
   const cx = width / 2;
   const cy = height / 2;
   const S = Math.min(width, height) / 2;
-  const P = MARGIN * S;
+
+  const ms = Number.isFinite(motionSpeed) ? Math.max(0, motionSpeed as number) : 1;
+  const mTime = time * ms;
+
+  // Gentle in/out depth breathing scales the projected radius.
+  const breath = animate && depthBreath ? 1 + Math.sin(mTime * 0.4) * 0.035 : 1;
+  const P = MARGIN * S * breath;
 
   const ghost = offColor ? hexToRgb(offColor) : GHOST_RGB;
   const palette = paletteFor(gradient, Math.max(0, Math.min(onCount, n)));
@@ -111,15 +135,28 @@ export function renderSphere(
 
   const pts = hemispherePoints(n);
 
-  const spin = animate ? time * 0.12 : 0.7;
-  const cosS = Math.cos(spin);
-  const sinS = Math.sin(spin);
-  // Subtle camera "nod": slowly rock the tilt so the dome's curvature reads via
-  // the kinetic-depth effect (motion parallax) — much more legible than spin
-  // alone, while staying calm.
-  const tilt = TILT + (animate ? Math.sin(time * 0.3) * 0.14 : 0);
+  // Yaw: optional continuous spin plus an optional back-and-forth rock. With no
+  // animation we hold a fixed three-quarter angle so the dome still reads as 3D.
+  let yaw = animate ? 0 : 0.7;
+  if (animate && spinOn) yaw += mTime * 0.12;
+  if (animate && rock) yaw += Math.sin(mTime * 0.5) * 0.55;
+  const cosS = Math.cos(yaw);
+  const sinS = Math.sin(yaw);
+  // Camera "nod": slowly rock the tilt so the dome's curvature reads via the
+  // kinetic-depth effect (motion parallax) — legible while staying calm.
+  const tilt = TILT + (animate && nod ? Math.sin(mTime * 0.3) * 0.14 : 0);
   const cosT = Math.cos(tilt);
   const sinT = Math.sin(tilt);
+
+  // Moving specular light direction (rotates around the dome), in view space.
+  const lp = mTime * 0.5;
+  let Lx = Math.sin(lp) * 0.65;
+  let Ly = 0.55;
+  let Lz = Math.cos(lp) * 0.65;
+  const Llen = Math.hypot(Lx, Ly, Lz) || 1;
+  Lx /= Llen;
+  Ly /= Llen;
+  Lz /= Llen;
 
   // Orthographic projection (parallel rays): position maps linearly and dots
   // keep their size regardless of depth. Depth is kept only for sorting.
@@ -127,6 +164,10 @@ export function renderSphere(
   const sx = new Float64Array(n);
   const sy = new Float64Array(n);
   const depth = new Float64Array(n);
+  // View-space unit normals (points sit on a unit sphere) for specular lighting.
+  const nx = new Float64Array(n);
+  const ny = new Float64Array(n);
+  const nz = new Float64Array(n);
   for (let i = 0; i < n; i++) {
     const p = pts[i];
     // Rotate around Y (spin).
@@ -141,6 +182,9 @@ export function renderSphere(
     sx[i] = cx + x2 * P;
     sy[i] = cy - y2 * P;
     depth[i] = z2;
+    nx[i] = x2;
+    ny[i] = y2;
+    nz[i] = z2;
     order[i] = i;
   }
 
@@ -171,6 +215,24 @@ export function renderSphere(
 
   const baseDot = P * (1.05 / Math.sqrt(n));
 
+  // Soft moving sheen: additive white scaled by how directly a slot faces the
+  // drifting light. Helps the eye read the rounded surface and slot depth.
+  const addSpecular = (x: number, y: number, r: number, i: number, k: number) => {
+    const d = nx[i] * Lx + ny[i] * Ly + nz[i] * Lz;
+    if (d <= 0) return;
+    const intensity = d * d * d * k;
+    if (intensity < 0.02) return;
+    ctx.globalCompositeOperation = "lighter";
+    const sr = r * 1.15;
+    const g = ctx.createRadialGradient(x, y, 0, x, y, sr);
+    g.addColorStop(0, `rgba(255, 255, 255, ${Math.min(0.9, intensity)})`);
+    g.addColorStop(1, "rgba(255, 255, 255, 0)");
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.arc(x, y, sr, 0, TAU);
+    ctx.fill();
+  };
+
   for (const i of order) {
     const x = sx[i];
     const y = sy[i];
@@ -192,6 +254,7 @@ export function renderSphere(
         ctx.beginPath();
         ctx.arc(x, y, r, 0, TAU);
         ctx.stroke();
+        if (specular && animate) addSpecular(x, y, r, i, 0.5);
       } else {
         const fill = ctx.createRadialGradient(x, y, 0, x, y, r);
         fill.addColorStop(0, rgba(ghost, 0.3));
@@ -246,6 +309,8 @@ export function renderSphere(
     ctx.beginPath();
     ctx.arc(x, y, coreR, 0, TAU);
     ctx.fill();
+
+    if (specular && animate) addSpecular(x, y, r, i, 0.7);
   }
 
   ctx.globalCompositeOperation = "source-over";

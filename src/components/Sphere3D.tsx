@@ -14,6 +14,12 @@ interface Sphere3DProps {
   sizeAmount: number;
   sizePulse: boolean;
   animate: boolean;
+  motionSpeed: number;
+  spin3d: boolean;
+  nod3d: boolean;
+  rock3d: boolean;
+  breathe3d: boolean;
+  specular3d: boolean;
 }
 
 export default function Sphere3D({
@@ -27,6 +33,12 @@ export default function Sphere3D({
   sizeAmount,
   sizePulse,
   animate,
+  motionSpeed,
+  spin3d,
+  nod3d,
+  rock3d,
+  breathe3d,
+  specular3d,
 }: Sphere3DProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const sizeRef = useRef({ width: 0, height: 0, dpr: 1 });
@@ -42,6 +54,12 @@ export default function Sphere3D({
     sizeAmount,
     sizePulse,
     animate,
+    motionSpeed,
+    spin3d,
+    nod3d,
+    rock3d,
+    breathe3d,
+    specular3d,
   });
   frameRef.current = {
     count,
@@ -54,6 +72,12 @@ export default function Sphere3D({
     sizeAmount,
     sizePulse,
     animate,
+    motionSpeed,
+    spin3d,
+    nod3d,
+    rock3d,
+    breathe3d,
+    specular3d,
   };
 
   useEffect(() => {
@@ -107,6 +131,12 @@ export default function Sphere3D({
         sizePulse: f.sizePulse,
         time,
         animate: f.animate,
+        motionSpeed: f.motionSpeed,
+        spin: f.spin3d,
+        nod: f.nod3d,
+        rock: f.rock3d,
+        depthBreath: f.breathe3d,
+        specular: f.specular3d,
       });
       raf = requestAnimationFrame(draw);
     };

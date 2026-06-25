@@ -25,6 +25,7 @@ interface MandalaCanvasProps {
   tierValues: boolean;
   tierColor: string;
   animate: boolean;
+  motionSpeed: number;
 }
 
 export default function MandalaCanvas({
@@ -48,6 +49,7 @@ export default function MandalaCanvas({
   tierValues,
   tierColor,
   animate,
+  motionSpeed,
 }: MandalaCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const sizeRef = useRef({ width: 0, height: 0, dpr: 1 });
@@ -80,6 +82,7 @@ export default function MandalaCanvas({
     tierValues,
     tierColor,
     animate,
+    motionSpeed,
   });
   frameRef.current = {
     view,
@@ -101,6 +104,7 @@ export default function MandalaCanvas({
     tierValues,
     tierColor,
     animate,
+    motionSpeed,
   };
 
   // Handle resizing and device-pixel-ratio for a crisp canvas.
@@ -166,6 +170,7 @@ export default function MandalaCanvas({
         tierColor: f.tierColor,
         time,
         animate: f.animate,
+        motionSpeed: f.motionSpeed,
       });
       raf = requestAnimationFrame(draw);
     };

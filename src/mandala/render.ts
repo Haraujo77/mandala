@@ -38,6 +38,8 @@ export interface RenderOptions {
   sizeAmount: number;
   /** Continuously animate the size gradient grow<->shrink. */
   sizePulse: boolean;
+  /** Global speed multiplier for ambient motion (1 = base). */
+  motionSpeed?: number;
   /** When false, dots are capped so they never overlap. */
   allowOverlap: boolean;
   /** Brightness/size of the lit slots' glow, 0..1. */
@@ -194,6 +196,7 @@ export function renderMandala(
     tierColor,
     time,
     animate,
+    motionSpeed,
   } = opts;
   const { slots, edges, fit } = view;
   const ghost = offColor ? hexToRgb(offColor) : GHOST_RGB;
@@ -206,9 +209,11 @@ export function renderMandala(
   const cy = height / 2;
   const S = Math.min(width, height) / 2;
 
-  const rotation = animate ? time * 0.016 : 0;
-  const breathe = animate ? 1 + Math.sin(time * 0.7) * 0.012 : 1;
-  const pulse = animate ? (Math.sin(time * 1.5) + 1) / 2 : 0.5;
+  const ms = Number.isFinite(motionSpeed) ? Math.max(0, motionSpeed as number) : 1;
+  const mTime = time * ms;
+  const rotation = animate ? mTime * 0.016 : 0;
+  const breathe = animate ? 1 + Math.sin(mTime * 0.7) * 0.012 : 1;
+  const pulse = animate ? (Math.sin(mTime * 1.5) + 1) / 2 : 0.5;
   const visibleCount = slots.length;
   const n = slots.length;
 

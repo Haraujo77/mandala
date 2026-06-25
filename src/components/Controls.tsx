@@ -37,6 +37,12 @@ interface ControlsProps {
   tierValues: boolean;
   tierColor: string;
   animate: boolean;
+  motionSpeed: number;
+  spin3d: boolean;
+  nod3d: boolean;
+  rock3d: boolean;
+  breathe3d: boolean;
+  specular3d: boolean;
   onPatternChange: (pattern: PatternId) => void;
   onStageChange: (stage: Stage) => void;
   onOnChange: (on: number) => void;
@@ -58,6 +64,12 @@ interface ControlsProps {
   onTierColorChange: (color: string) => void;
   onModeChange: (mode: ViewMode) => void;
   onAnimateChange: (animate: boolean) => void;
+  onMotionSpeedChange: (value: number) => void;
+  onSpin3dChange: (on: boolean) => void;
+  onNod3dChange: (on: boolean) => void;
+  onRock3dChange: (on: boolean) => void;
+  onBreathe3dChange: (on: boolean) => void;
+  onSpecular3dChange: (on: boolean) => void;
 }
 
 /** CSS background for a gradient preview bar. */
@@ -91,6 +103,12 @@ export default function Controls({
   tierValues,
   tierColor,
   animate,
+  motionSpeed,
+  spin3d,
+  nod3d,
+  rock3d,
+  breathe3d,
+  specular3d,
   onPatternChange,
   onStageChange,
   onOnChange,
@@ -112,6 +130,12 @@ export default function Controls({
   onTierColorChange,
   onModeChange,
   onAnimateChange,
+  onMotionSpeedChange,
+  onSpin3dChange,
+  onNod3dChange,
+  onRock3dChange,
+  onBreathe3dChange,
+  onSpecular3dChange,
 }: ControlsProps) {
   const is3d = mode === "3d";
   const colorProgress = Math.min(1, on / FULL_SPECTRUM_AT);
@@ -524,8 +548,8 @@ export default function Controls({
       </section>
       )}
 
+      {!is3d && (
       <section className="control-group control-group--row">
-        {!is3d && (
         <label className="toggle">
           <input
             type="checkbox"
@@ -534,8 +558,17 @@ export default function Controls({
           />
           <span>Connectors</span>
         </label>
-        )}
-        <label className="toggle">
+      </section>
+      )}
+
+      <section className="control-group">
+        <div className="control-label">
+          <span>Motion</span>
+          <span className="control-hint">
+            {is3d ? "spin · nod · sheen" : "ambient drift"}
+          </span>
+        </div>
+        <label className="toggle toggle--row">
           <input
             type="checkbox"
             checked={animate}
@@ -543,6 +576,84 @@ export default function Controls({
           />
           <span>Ambient motion</span>
         </label>
+
+        <div className={`subcontrol${animate ? "" : " is-disabled"}`}>
+          <div className="control-label control-label--sub">
+            <span>Speed</span>
+            <span className="control-value">
+              {Math.round(motionSpeed * 100)}%
+            </span>
+          </div>
+          <input
+            type="range"
+            min={0}
+            max={150}
+            value={Math.round(motionSpeed * 100)}
+            disabled={!animate}
+            onChange={(e) => onMotionSpeedChange(Number(e.target.value) / 100)}
+            aria-label="Ambient motion speed"
+          />
+        </div>
+
+        {is3d && (
+          <>
+            <label
+              className={`toggle toggle--row toggle--sub${animate ? "" : " is-disabled"}`}
+            >
+              <input
+                type="checkbox"
+                checked={spin3d}
+                disabled={!animate}
+                onChange={(e) => onSpin3dChange(e.target.checked)}
+              />
+              <span>Spin (continuous)</span>
+            </label>
+            <label
+              className={`toggle toggle--row toggle--sub${animate ? "" : " is-disabled"}`}
+            >
+              <input
+                type="checkbox"
+                checked={rock3d}
+                disabled={!animate}
+                onChange={(e) => onRock3dChange(e.target.checked)}
+              />
+              <span>Rock (oscillating spin)</span>
+            </label>
+            <label
+              className={`toggle toggle--row toggle--sub${animate ? "" : " is-disabled"}`}
+            >
+              <input
+                type="checkbox"
+                checked={nod3d}
+                disabled={!animate}
+                onChange={(e) => onNod3dChange(e.target.checked)}
+              />
+              <span>Camera nod (tilt)</span>
+            </label>
+            <label
+              className={`toggle toggle--row toggle--sub${animate ? "" : " is-disabled"}`}
+            >
+              <input
+                type="checkbox"
+                checked={breathe3d}
+                disabled={!animate}
+                onChange={(e) => onBreathe3dChange(e.target.checked)}
+              />
+              <span>Depth breathing</span>
+            </label>
+            <label
+              className={`toggle toggle--row toggle--sub${animate ? "" : " is-disabled"}`}
+            >
+              <input
+                type="checkbox"
+                checked={specular3d}
+                disabled={!animate}
+                onChange={(e) => onSpecular3dChange(e.target.checked)}
+              />
+              <span>Specular sweep (sheen)</span>
+            </label>
+          </>
+        )}
       </section>
     </aside>
   );

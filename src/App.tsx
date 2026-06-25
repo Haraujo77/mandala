@@ -40,6 +40,12 @@ interface AppState {
   tierValues: boolean;
   tierColor: string;
   animate: boolean;
+  motionSpeed: number;
+  spin3d: boolean;
+  nod3d: boolean;
+  rock3d: boolean;
+  breathe3d: boolean;
+  specular3d: boolean;
 }
 
 // The default view (used when no URL params are present). Params are only
@@ -66,6 +72,12 @@ const DEFAULTS: AppState = {
   tierValues: false,
   tierColor: DEFAULT_TIER_COLOR,
   animate: true,
+  motionSpeed: 0.35,
+  spin3d: true,
+  nod3d: true,
+  rock3d: false,
+  breathe3d: false,
+  specular3d: false,
 };
 
 const DEFAULT_GRADIENT_KEY = serializeGradient(DEFAULTS.gradient);
@@ -162,6 +174,23 @@ function readStateFromUrl(): AppState {
     ? params.get("animate") === "1"
     : DEFAULTS.animate;
 
+  const motionSpeed = params.has("mspeed")
+    ? Math.max(0, Math.min(1.5, Number(params.get("mspeed")) / 100))
+    : DEFAULTS.motionSpeed;
+  const spin3d = params.has("mspin")
+    ? params.get("mspin") === "1"
+    : DEFAULTS.spin3d;
+  const nod3d = params.has("mnod") ? params.get("mnod") === "1" : DEFAULTS.nod3d;
+  const rock3d = params.has("mrock")
+    ? params.get("mrock") === "1"
+    : DEFAULTS.rock3d;
+  const breathe3d = params.has("mbreathe")
+    ? params.get("mbreathe") === "1"
+    : DEFAULTS.breathe3d;
+  const specular3d = params.has("mspec")
+    ? params.get("mspec") === "1"
+    : DEFAULTS.specular3d;
+
   return {
     mode,
     pattern,
@@ -184,6 +213,12 @@ function readStateFromUrl(): AppState {
     tierValues,
     tierColor,
     animate,
+    motionSpeed,
+    spin3d,
+    nod3d,
+    rock3d,
+    breathe3d,
+    specular3d,
   };
 }
 
@@ -242,6 +277,24 @@ function writeStateToUrl(state: AppState) {
   }
   if (state.animate !== DEFAULTS.animate) {
     params.set("animate", state.animate ? "1" : "0");
+  }
+  if (state.motionSpeed !== DEFAULTS.motionSpeed) {
+    params.set("mspeed", String(Math.round(state.motionSpeed * 100)));
+  }
+  if (state.spin3d !== DEFAULTS.spin3d) {
+    params.set("mspin", state.spin3d ? "1" : "0");
+  }
+  if (state.nod3d !== DEFAULTS.nod3d) {
+    params.set("mnod", state.nod3d ? "1" : "0");
+  }
+  if (state.rock3d !== DEFAULTS.rock3d) {
+    params.set("mrock", state.rock3d ? "1" : "0");
+  }
+  if (state.breathe3d !== DEFAULTS.breathe3d) {
+    params.set("mbreathe", state.breathe3d ? "1" : "0");
+  }
+  if (state.specular3d !== DEFAULTS.specular3d) {
+    params.set("mspec", state.specular3d ? "1" : "0");
   }
   const query = params.toString();
   const url = query
@@ -302,6 +355,20 @@ export default function App() {
     setState((s) => ({ ...s, tierColor }));
   const setAnimate = (animate: boolean) =>
     setState((s) => ({ ...s, animate }));
+  const setMotionSpeed = (motionSpeed: number) =>
+    setState((s) => ({
+      ...s,
+      motionSpeed: Number.isFinite(motionSpeed)
+        ? Math.max(0, Math.min(1.5, motionSpeed))
+        : DEFAULTS.motionSpeed,
+    }));
+  const setSpin3d = (spin3d: boolean) => setState((s) => ({ ...s, spin3d }));
+  const setNod3d = (nod3d: boolean) => setState((s) => ({ ...s, nod3d }));
+  const setRock3d = (rock3d: boolean) => setState((s) => ({ ...s, rock3d }));
+  const setBreathe3d = (breathe3d: boolean) =>
+    setState((s) => ({ ...s, breathe3d }));
+  const setSpecular3d = (specular3d: boolean) =>
+    setState((s) => ({ ...s, specular3d }));
 
   return (
     <div className="app">
@@ -318,6 +385,12 @@ export default function App() {
             sizeAmount={state.sizeAmount}
             sizePulse={state.sizePulse}
             animate={state.animate}
+            motionSpeed={state.motionSpeed}
+            spin3d={state.spin3d}
+            nod3d={state.nod3d}
+            rock3d={state.rock3d}
+            breathe3d={state.breathe3d}
+            specular3d={state.specular3d}
           />
         ) : (
           <MandalaCanvas
@@ -341,6 +414,7 @@ export default function App() {
             tierValues={state.tierValues}
             tierColor={state.tierColor}
             animate={state.animate}
+            motionSpeed={state.motionSpeed}
           />
         )}
       </main>
@@ -366,6 +440,12 @@ export default function App() {
         tierValues={state.tierValues}
         tierColor={state.tierColor}
         animate={state.animate}
+        motionSpeed={state.motionSpeed}
+        spin3d={state.spin3d}
+        nod3d={state.nod3d}
+        rock3d={state.rock3d}
+        breathe3d={state.breathe3d}
+        specular3d={state.specular3d}
         onModeChange={setMode}
         onPatternChange={setPattern}
         onStageChange={setStage}
@@ -387,6 +467,12 @@ export default function App() {
         onTierValuesChange={setTierValues}
         onTierColorChange={setTierColor}
         onAnimateChange={setAnimate}
+        onMotionSpeedChange={setMotionSpeed}
+        onSpin3dChange={setSpin3d}
+        onNod3dChange={setNod3d}
+        onRock3dChange={setRock3d}
+        onBreathe3dChange={setBreathe3d}
+        onSpecular3dChange={setSpecular3d}
       />
     </div>
   );
