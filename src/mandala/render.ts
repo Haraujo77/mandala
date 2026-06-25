@@ -270,6 +270,7 @@ export function renderMandala(
   let effAmount = safeAmount;
   let pulseBreath = 1;
   let posBreath = 1;
+  let pulseFitAmp = 0; // how much frame-reserve the pulse currently needs (0..1)
   if (sizePulse) {
     // One full grow -> shrink -> grow cycle, with ease-in/out applied to each
     // leg. This slows the motion smoothly at the grown and shrunk extremes
@@ -283,6 +284,7 @@ export function renderMandala(
     // Amplitude lets callers ramp the pulse in from the neutral (uniform) state
     // so it never snaps on mid-swing.
     const amp = Number.isFinite(sizePulseAmp) ? clamp01(sizePulseAmp as number) : 1;
+    pulseFitAmp = amp;
     if (signed >= 0) {
       effMode = "grow";
       effAmount = signed * amp;
@@ -392,7 +394,10 @@ export function renderMandala(
     // worst-case size the slot ever reaches keeps P — and the positions — fixed,
     // so only the dots breathe.
     const tN = rNorm < 0 ? 0 : rNorm > 1 ? 1 : rNorm;
-    const fitM = sizePulse ? 1 + MAX_AMP * Math.abs(2 * tN - 1) : m;
+    // Reserve only as much frame space as the *current* pulse amplitude needs,
+    // so ramping the pulse in (Reveal) scales the figure smoothly instead of
+    // snapping to the full-amplitude reserve the instant it turns on.
+    const fitM = sizePulse ? 1 + MAX_AMP * pulseFitAmp * Math.abs(2 * tN - 1) : m;
     const ext = dispR[i] + dotFrac * baseOf(i) * fitM * glowAllow;
     if (ext > maxExtent) maxExtent = ext;
   }
