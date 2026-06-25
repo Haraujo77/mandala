@@ -72,7 +72,7 @@ const DEFAULTS: AppState = {
   tierValues: false,
   tierColor: DEFAULT_TIER_COLOR,
   animate: true,
-  motionSpeed: 0.35,
+  motionSpeed: 0.5,
   spin3d: true,
   nod3d: true,
   rock3d: false,

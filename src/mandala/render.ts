@@ -211,7 +211,7 @@ export function renderMandala(
 
   const ms = Number.isFinite(motionSpeed) ? Math.max(0, motionSpeed as number) : 1;
   const mTime = time * ms;
-  const rotation = animate ? mTime * 0.016 : 0;
+  const rotation = animate ? mTime * 0.05 : 0;
   const breathe = animate ? 1 + Math.sin(mTime * 0.7) * 0.012 : 1;
   const pulse = animate ? (Math.sin(mTime * 1.5) + 1) / 2 : 0.5;
   const visibleCount = slots.length;
@@ -246,20 +246,25 @@ export function renderMandala(
   let effMode = sizeMode;
   let effAmount = safeAmount;
   let pulseBreath = 1;
+  let posBreath = 1;
   if (sizePulse) {
-    const c = Math.cos(time * SIZE_PULSE_SPEED);
-    const u = (c + 1) / 2; // 0..1
-    const eased = u * u * u * (u * (u * 6 - 15) + 10); // smootherstep
-    const signed = eased * 2 - 1; // [-1, 1], eased: +1 grow, -1 shrink
-    if (signed >= 0) {
+    // A pure sine sweeps continuously from full grow to full shrink and back at
+    // an even pace — it passes straight through the uniform midpoint instead of
+    // easing/lingering there, so the breathing feels smooth and never "stops".
+    const s = Math.sin(time * SIZE_PULSE_SPEED); // -1..1: +grow, -shrink
+    if (s >= 0) {
       effMode = "grow";
-      effAmount = signed;
+      effAmount = s;
     } else {
       effMode = "shrink";
-      effAmount = -signed;
+      effAmount = -s;
     }
+    const u = (s + 1) / 2; // 0..1
     // grow extreme -> 1.0 (largest), shrink extreme -> 0.72 (smallest).
-    pulseBreath = 0.72 + 0.28 * eased;
+    pulseBreath = 0.72 + 0.28 * u;
+    // A gentle, uniform radial drift so the slots actually gather and spread a
+    // little (kept small + stage-independent so the 3/5 stages don't fly apart).
+    posBreath = 1 + Math.sin(time * SIZE_PULSE_SPEED * 0.5) * 0.05;
   }
 
   const dotFrac = 0.58; // dot radius as a fraction of the spacing
@@ -361,7 +366,7 @@ export function renderMandala(
     if (ext > maxExtent) maxExtent = ext;
   }
   let P = maxExtent > 0 ? (MARGIN * S) / maxExtent : S;
-  P *= breathe;
+  P *= breathe * posBreath;
   if (!Number.isFinite(P) || P <= 0) P = S;
 
   // When overlap is off, shrink ALL dots by one uniform factor so the biggest
