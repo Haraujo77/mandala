@@ -290,6 +290,22 @@ export default function Controls({
           </div>
 
           <div className="control-label control-label--sub">
+            <span>Enabled</span>
+            <span className="control-value">
+              {Math.min(on, revealTarget)}{" "}
+              <span className="control-value__sep">/</span> {revealTarget}
+            </span>
+          </div>
+          <input
+            type="range"
+            min={0}
+            max={revealTarget}
+            value={Math.min(on, revealTarget)}
+            onChange={(e) => onOnChange(Number(e.target.value))}
+            aria-label="Enabled slots"
+          />
+
+          <div className="control-label control-label--sub">
             <span>Disappear</span>
           </div>
           <div className="segmented segmented--3" role="group" aria-label="Reveal order">

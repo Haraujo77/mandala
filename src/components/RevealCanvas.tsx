@@ -8,6 +8,8 @@ export type RevealOrder = "outer" | "inner" | "random";
 
 interface RevealCanvasProps {
   pattern: PatternId;
+  /** How many of the target slots are lit (enabled). Clamped to the target. */
+  on: number;
   /** How many slots remain at the end of the transition (the target stage). */
   target: Stage;
   /** Seconds for a full 500 -> target sweep. */
@@ -89,6 +91,7 @@ interface MorphData {
 
 export default function RevealCanvas({
   pattern,
+  on,
   target,
   duration,
   order,
@@ -106,13 +109,20 @@ export default function RevealCanvas({
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const sizeRef = useRef({ width: 0, height: 0, dpr: 1 });
 
-  const palette = useMemo(() => paletteFor(gradient, FULL), [gradient]);
+  const onCount = Math.max(0, Math.min(on, target));
+  const palette = useMemo(
+    () => paletteFor(gradient, onCount),
+    [gradient, onCount],
+  );
 
   // Everything tied to (pattern, target): the two layouts being morphed, the
   // disappearance ranks, and mutable working buffers reused every frame.
   const morph = useMemo<MorphData>(() => {
     const bloom = viewForStage(pattern, FULL);
-    const targetView = viewForStage(pattern, target);
+    // The 50-slot milestone always lands on the spiral layout, regardless of the
+    // bloom's pattern.
+    const targetPattern: PatternId = target === 50 ? "spiral" : pattern;
+    const targetView = viewForStage(targetPattern, target);
     const slots = bloom.slots.map((s) => ({ ...s }));
     const neighbor = bloom.neighbor.slice();
     const view: StageView = {
@@ -139,6 +149,7 @@ export default function RevealCanvas({
   const frameRef = useRef({
     morph,
     palette,
+    onCount,
     target,
     duration,
     loop,
@@ -153,6 +164,7 @@ export default function RevealCanvas({
   frameRef.current = {
     morph,
     palette,
+    onCount,
     target,
     duration,
     loop,
@@ -227,6 +239,9 @@ export default function RevealCanvas({
       } else {
         tau = Math.min(phase, 1);
       }
+      // With ping-pong off, once the shape has fully assembled it breathes with
+      // the 2D size animation (grow <-> shrink).
+      const settled = !f.loop && phase >= 1;
 
       const { bloom, targetView, ranks, slots, neighbor, view } = f.morph;
       const n = slots.length;
@@ -271,11 +286,11 @@ export default function RevealCanvas({
         width,
         height,
         view,
-        onCount: n, // every present slot is lit (a full, colored bloom)
+        onCount: f.onCount, // first `on` survivors are lit; the rest are ghosts
         palette: f.palette,
-        sizeMode: "uniform",
-        sizeAmount: 0,
-        sizePulse: false,
+        sizeMode: settled ? "shrink" : "uniform",
+        sizeAmount: settled ? 1 : 0,
+        sizePulse: settled,
         motionSpeed: f.motionSpeed,
         allowOverlap: false,
         lightIntensity: f.lightIntensity,

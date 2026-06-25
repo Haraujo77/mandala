@@ -449,6 +449,7 @@ export default function App() {
         {state.mode === "reveal" ? (
           <RevealCanvas
             pattern={state.pattern}
+            on={state.on}
             target={state.revealTarget}
             duration={state.revealDuration}
             order={state.revealOrder}
