@@ -230,8 +230,15 @@ export default function RevealCanvas({
 
       const { bloom, targetView, ranks, slots, neighbor, view } = f.morph;
       const n = slots.length;
-      const me = smootherstep(tau); // eased position/mesh morph
       const tn = targetView.slots.length;
+
+      // Two-beat timeline: the extra slots disappear first (FADE), then the
+      // survivors glide into the target shape (MOVE), with a little overlap.
+      const FADE_PORTION = 0.55; // extras fully gone by here
+      const MOVE_START = 0.4; // survivors start moving here
+      const fadeTau = clamp01(tau / FADE_PORTION);
+      const moveTau = clamp01((tau - MOVE_START) / (1 - MOVE_START));
+      const me = smootherstep(moveTau); // eased position/mesh morph
 
       // Survivors (indices < target) ease from their bloom position + spacing to
       // the target layout's position + spacing, so the arrival is exactly the 2D
@@ -256,7 +263,7 @@ export default function RevealCanvas({
           continue;
         }
         const startAt = ranks[i] * (1 - WINDOW);
-        presence[i] = 1 - smootherstep(clamp01((tau - startAt) / WINDOW));
+        presence[i] = 1 - smootherstep(clamp01((fadeTau - startAt) / WINDOW));
       }
 
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
