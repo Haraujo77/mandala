@@ -270,6 +270,9 @@ export default function RevealCanvas({
       const pulseAmp = settled
         ? clamp01((progressRef.current - dur) / 1.2)
         : 0;
+      // Tier rings/labels/gaps only belong to the full 500 form: full at the
+      // start, faded out as soon as it transitions toward any milestone.
+      const tierAlpha = 1 - smootherstep(clamp01(tau / 0.2));
 
       const { bloom, targetView, ranks, slots, neighbor, view } = f.morph;
       const n = slots.length;
@@ -333,7 +336,7 @@ export default function RevealCanvas({
         tierLabels: f.tierLabels,
         tierValues: f.tierValues,
         tierColor: f.tierColor,
-        tierLimit: f.target,
+        tierAlpha,
         presence,
         edges2: targetView.edges,
         edgeMix: me,

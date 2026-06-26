@@ -72,6 +72,8 @@ export interface RenderOptions {
   tierColor?: string;
   /** Only draw tier boundaries/labels strictly below this count (Reveal). */
   tierLimit?: number;
+  /** Opacity of tier rings/labels and strength of tier gaps, 0..1 (default 1). */
+  tierAlpha?: number;
   /**
    * Optional per-slot presence in [0,1] (length === slots.length). 1 = fully
    * shown; 0 = gone. Drives the Reveal transition: slots fade + shrink out as
@@ -214,6 +216,7 @@ export function renderMandala(
     tierValues,
     tierColor,
     tierLimit,
+    tierAlpha,
     presence,
     edges2,
     edgeMix,
@@ -338,6 +341,7 @@ export function renderMandala(
   };
   const tierCount = tierOf(n - 1) + 1;
   const tierCap = Number.isFinite(tierLimit) ? (tierLimit as number) : n;
+  const ta = Number.isFinite(tierAlpha) ? clamp01(tierAlpha as number) : 1;
   const boundaryThresholds = THRESHOLDS.filter(
     (th) => th > 0 && th < n && th < tierCap,
   );
@@ -350,8 +354,8 @@ export function renderMandala(
   const dispR = new Array<number>(n);
   for (let i = 0; i < n; i++) {
     const s = slots[i];
-    if (tierGaps && s.radius > 1e-6) {
-      const scale = (s.radius + TIER_GAP * tierOf(i)) / s.radius;
+    if (tierGaps && ta > 0.001 && s.radius > 1e-6) {
+      const scale = (s.radius + TIER_GAP * ta * tierOf(i)) / s.radius;
       dispX[i] = s.x * scale;
       dispY[i] = s.y * scale;
       dispR[i] = s.radius * scale;
@@ -441,8 +445,9 @@ export function renderMandala(
   ctx.lineJoin = "round";
 
   // ---- Tier divider rings --------------------------------------------------
-  if (tierRings && boundaryThresholds.length) {
+  if (tierRings && boundaryThresholds.length && ta > 0.01) {
     ctx.globalCompositeOperation = "source-over";
+    ctx.globalAlpha = ta;
     ctx.strokeStyle = rgba(tierRgb, 0.55);
     ctx.lineWidth = 1;
     ctx.setLineDash([3, 6]);
@@ -455,6 +460,7 @@ export function renderMandala(
       }
     }
     ctx.setLineDash([]);
+    ctx.globalAlpha = 1;
   }
 
   // ---- Connective mesh -----------------------------------------------------
@@ -613,9 +619,10 @@ export function renderMandala(
   // ---- Tier labels ---------------------------------------------------------
   // Curved along each ring's path. Drawn unrotated in screen space (the rings
   // are concentric, so they're identical regardless of ambient rotation).
-  if (tierLabels && boundaryThresholds.length) {
+  if (tierLabels && boundaryThresholds.length && ta > 0.01) {
     const fontPx = Math.max(10, S * 0.03);
     ctx.save();
+    ctx.globalAlpha = ta;
     ctx.translate(cx, cy);
     ctx.font = `700 ${fontPx}px ui-sans-serif, system-ui, -apple-system, sans-serif`;
     ctx.textAlign = "center";
