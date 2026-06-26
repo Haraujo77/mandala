@@ -70,6 +70,8 @@ export interface RenderOptions {
   tierValues?: boolean;
   /** Color for tier rings + labels, hex string (distinct from off slots). */
   tierColor?: string;
+  /** Only draw tier boundaries/labels strictly below this count (Reveal). */
+  tierLimit?: number;
   /**
    * Optional per-slot presence in [0,1] (length === slots.length). 1 = fully
    * shown; 0 = gone. Drives the Reveal transition: slots fade + shrink out as
@@ -211,6 +213,7 @@ export function renderMandala(
     tierLabels,
     tierValues,
     tierColor,
+    tierLimit,
     presence,
     edges2,
     edgeMix,
@@ -334,7 +337,10 @@ export function renderMandala(
     return k;
   };
   const tierCount = tierOf(n - 1) + 1;
-  const boundaryThresholds = THRESHOLDS.filter((th) => th > 0 && th < n);
+  const tierCap = Number.isFinite(tierLimit) ? (tierLimit as number) : n;
+  const boundaryThresholds = THRESHOLDS.filter(
+    (th) => th > 0 && th < n && th < tierCap,
+  );
 
   // Optional radial gaps: push each slot outward by a per-tier offset so the
   // tiers separate into distinct bands.

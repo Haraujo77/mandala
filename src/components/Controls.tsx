@@ -628,7 +628,7 @@ export default function Controls({
         </p>
       </section>
 
-      {is2d && (
+      {!is3d && (
       <section className="control-group">
         <div className="control-label">
           <span>Tiers</span>

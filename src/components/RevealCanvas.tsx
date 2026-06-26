@@ -26,6 +26,12 @@ interface RevealCanvasProps {
   offColor: string;
   opaqueOff: boolean;
   showConnectors: boolean;
+  tierRings: boolean;
+  tierGaps: boolean;
+  tierBands: boolean;
+  tierLabels: boolean;
+  tierValues: boolean;
+  tierColor: string;
   animate: boolean;
   motionSpeed: number;
 }
@@ -103,6 +109,12 @@ export default function RevealCanvas({
   offColor,
   opaqueOff,
   showConnectors,
+  tierRings,
+  tierGaps,
+  tierBands,
+  tierLabels,
+  tierValues,
+  tierColor,
   animate,
   motionSpeed,
 }: RevealCanvasProps) {
@@ -158,6 +170,12 @@ export default function RevealCanvas({
     offColor,
     opaqueOff,
     showConnectors,
+    tierRings,
+    tierGaps,
+    tierBands,
+    tierLabels,
+    tierValues,
+    tierColor,
     animate,
     motionSpeed,
   });
@@ -173,6 +191,12 @@ export default function RevealCanvas({
     offColor,
     opaqueOff,
     showConnectors,
+    tierRings,
+    tierGaps,
+    tierBands,
+    tierLabels,
+    tierValues,
+    tierColor,
     animate,
     motionSpeed,
   };
@@ -303,6 +327,13 @@ export default function RevealCanvas({
         offColor: f.offColor,
         opaqueOff: f.opaqueOff,
         lightWave: false,
+        tierRings: f.tierRings,
+        tierGaps: f.tierGaps,
+        tierBands: f.tierBands,
+        tierLabels: f.tierLabels,
+        tierValues: f.tierValues,
+        tierColor: f.tierColor,
+        tierLimit: f.target,
         presence,
         edges2: targetView.edges,
         edgeMix: me,

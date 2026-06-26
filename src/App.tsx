@@ -461,6 +461,12 @@ export default function App() {
             offColor={state.offColor}
             opaqueOff={state.opaqueOff}
             showConnectors={state.showConnectors}
+            tierRings={state.tierRings}
+            tierGaps={state.tierGaps}
+            tierBands={state.tierBands}
+            tierLabels={state.tierLabels}
+            tierValues={state.tierValues}
+            tierColor={state.tierColor}
             animate={state.animate}
             motionSpeed={state.motionSpeed}
           />
