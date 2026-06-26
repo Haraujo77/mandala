@@ -55,6 +55,9 @@ interface ControlsProps {
   revealOrder: RevealOrder;
   revealLoop: boolean;
   revealPlaying: boolean;
+  buildSpeed: number;
+  buildLoop: boolean;
+  buildPlaying: boolean;
   onPatternChange: (pattern: PatternId) => void;
   onStageChange: (stage: Stage) => void;
   onOnChange: (on: number) => void;
@@ -88,6 +91,10 @@ interface ControlsProps {
   onRevealLoopChange: (on: boolean) => void;
   onRevealPlayingChange: (on: boolean) => void;
   onReplayReveal: () => void;
+  onBuildSpeedChange: (value: number) => void;
+  onBuildLoopChange: (on: boolean) => void;
+  onBuildPlayingChange: (on: boolean) => void;
+  onReplayBuild: () => void;
 }
 
 /** CSS background for a gradient preview bar. */
@@ -132,6 +139,9 @@ export default function Controls({
   revealOrder,
   revealLoop,
   revealPlaying,
+  buildSpeed,
+  buildLoop,
+  buildPlaying,
   onPatternChange,
   onStageChange,
   onOnChange,
@@ -165,9 +175,14 @@ export default function Controls({
   onRevealLoopChange,
   onRevealPlayingChange,
   onReplayReveal,
+  onBuildSpeedChange,
+  onBuildLoopChange,
+  onBuildPlayingChange,
+  onReplayBuild,
 }: ControlsProps) {
   const is3d = mode === "3d";
   const isReveal = mode === "reveal";
+  const isBuild = mode === "build";
   const is2d = mode === "2d";
   const colorProgress = Math.min(1, on / FULL_SPECTRUM_AT);
   const spectrumReached = on >= FULL_SPECTRUM_AT;
@@ -212,7 +227,7 @@ export default function Controls({
         <p className="controls__subtitle">Friends brought to the project</p>
       </header>
 
-      <div className="segmented segmented--3" role="tablist" aria-label="View mode">
+      <div className="segmented segmented--4" role="tablist" aria-label="View mode">
         <button
           type="button"
           role="tab"
@@ -239,6 +254,15 @@ export default function Controls({
           onClick={() => onModeChange("reveal")}
         >
           Reveal
+        </button>
+        <button
+          type="button"
+          role="tab"
+          className={`segmented__btn${isBuild ? " is-active" : ""}`}
+          aria-selected={isBuild}
+          onClick={() => onModeChange("build")}
+        >
+          Build
         </button>
       </div>
 
@@ -363,7 +387,71 @@ export default function Controls({
         </section>
       )}
 
-      {!isReveal && (
+      {isBuild && (
+        <section className="control-group">
+          <div className="control-label">
+            <span>Build-up</span>
+            <span className="control-hint">appear → show → resolve</span>
+          </div>
+          <p className="control-note">
+            All 500 appear lit, breathe through the size &amp; light animation,
+            then the disabled slots fade out as the tiers come in — leaving the
+            enabled slots lit.
+          </p>
+
+          <div className="control-label control-label--sub">
+            <span>Enabled</span>
+            <span className="control-value">
+              {on} <span className="control-value__sep">/</span> 500
+            </span>
+          </div>
+          <input
+            type="range"
+            min={0}
+            max={500}
+            value={on}
+            onChange={(e) => onOnChange(Number(e.target.value))}
+            aria-label="Enabled slots"
+          />
+
+          <div className="control-label control-label--sub">
+            <span>Speed</span>
+            <span className="control-value">{buildSpeed.toFixed(2)}×</span>
+          </div>
+          <input
+            type="range"
+            min={25}
+            max={300}
+            value={Math.round(buildSpeed * 100)}
+            onChange={(e) => onBuildSpeedChange(Number(e.target.value) / 100)}
+            aria-label="Build speed"
+          />
+
+          <div className="control-row">
+            <button type="button" className="ghost-btn" onClick={onReplayBuild}>
+              Replay
+            </button>
+            <button
+              type="button"
+              className="ghost-btn"
+              onClick={() => onBuildPlayingChange(!buildPlaying)}
+            >
+              {buildPlaying ? "Pause" : "Play"}
+            </button>
+          </div>
+
+          <label className="toggle toggle--row">
+            <input
+              type="checkbox"
+              checked={buildLoop}
+              onChange={(e) => onBuildLoopChange(e.target.checked)}
+            />
+            <span>Loop</span>
+          </label>
+        </section>
+      )}
+
+      {!isReveal && !isBuild && (
       <section className="control-group">
         <div className="control-label">
           <span>Form</span>
@@ -387,7 +475,7 @@ export default function Controls({
       </section>
       )}
 
-      {!isReveal && (
+      {!isReveal && !isBuild && (
       <section className="control-group">
         <div className="control-label">
           <span>Enabled</span>
@@ -442,7 +530,7 @@ export default function Controls({
       </section>
       )}
 
-      {!isReveal && (
+      {!isReveal && !isBuild && (
       <section className="control-group">
         <div className="control-label">
           <span>Slot size</span>

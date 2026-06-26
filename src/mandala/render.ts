@@ -80,6 +80,12 @@ export interface RenderOptions {
    * their presence drops. Positions and the auto-fit are unaffected.
    */
   presence?: number[];
+  /**
+   * Optional per-slot lit fraction in [0,1] (length === slots.length). Overrides
+   * the binary `onCount` split for drawing: each slot cross-fades between its
+   * ghost form (1 - lit) and lit form (lit). Drives the Build turn-off.
+   */
+  litLevel?: number[];
   /** Optional second mesh, cross-faded with `edges` via `edgeMix` (Reveal). */
   edges2?: Array<[number, number]>;
   /** 0 = draw `edges` only, 1 = draw `edges2` only; between = cross-fade. */
@@ -218,6 +224,7 @@ export function renderMandala(
     tierLimit,
     tierAlpha,
     presence,
+    litLevel,
     edges2,
     edgeMix,
     time,
@@ -228,6 +235,13 @@ export function renderMandala(
   const presOf = (i: number) =>
     presence && Number.isFinite(presence[i]) ? clamp01(presence[i]) : 1;
   const PRES_EPS = 0.004;
+  // Per-slot lit fraction: explicit (Build) or the binary onCount split.
+  const litFracOf = (i: number) =>
+    litLevel && Number.isFinite(litLevel[i])
+      ? clamp01(litLevel[i])
+      : i < onCount
+        ? 1
+        : 0;
   const ghost = offColor ? hexToRgb(offColor) : GHOST_RGB;
   const tierRgb = tierColor ? hexToRgb(tierColor) : ghost;
 
@@ -484,8 +498,8 @@ export function renderMandala(
       const ay = py(ai);
       const bx = px(bi);
       const by = py(bi);
-      const aLit = ai < onCount;
-      const bLit = bi < onCount;
+      const aLit = litFracOf(ai) > 0.5;
+      const bLit = litFracOf(bi) > 0.5;
 
       if (aLit || bLit) {
         const ca = aLit ? litColorOf(ai, a) : ghost;
@@ -524,8 +538,9 @@ export function renderMandala(
   ctx.globalAlpha = 1;
 
   // ---- Ghost slots (disabled) ---------------------------------------------
-  for (let i = onCount; i < slots.length; i++) {
-    const pr = presOf(i);
+  ctx.globalCompositeOperation = "source-over";
+  for (let i = 0; i < slots.length; i++) {
+    const pr = presOf(i) * (1 - litFracOf(i));
     if (pr < PRES_EPS) continue;
     ctx.globalAlpha = pr;
     const x = px(i);
@@ -579,8 +594,8 @@ export function renderMandala(
     return clamp01(li * (1 - WAVE_DEPTH + WAVE_DEPTH * wave));
   };
   ctx.globalCompositeOperation = "lighter";
-  for (let i = 0; i < onCount && i < slots.length; i++) {
-    const pr = presOf(i);
+  for (let i = 0; i < slots.length; i++) {
+    const pr = presOf(i) * litFracOf(i);
     if (pr < PRES_EPS) continue;
     ctx.globalAlpha = pr;
     const slot = slots[i];

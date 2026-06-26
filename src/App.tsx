@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import BuildCanvas from "./components/BuildCanvas";
 import Controls from "./components/Controls";
 import MandalaCanvas from "./components/MandalaCanvas";
 import RevealCanvas, { type RevealOrder } from "./components/RevealCanvas";
@@ -17,7 +18,7 @@ import type { SizeMode } from "./mandala/render";
 
 const SIZE_MODES: SizeMode[] = ["uniform", "grow", "shrink"];
 
-export type ViewMode = "2d" | "3d" | "reveal";
+export type ViewMode = "2d" | "3d" | "reveal" | "build";
 
 const REVEAL_ORDERS: RevealOrder[] = ["outer", "inner", "random"];
 
@@ -55,6 +56,10 @@ interface AppState {
   revealLoop: boolean;
   revealPlaying: boolean;
   revealToken: number;
+  buildSpeed: number;
+  buildLoop: boolean;
+  buildPlaying: boolean;
+  buildToken: number;
 }
 
 // The default view (used when no URL params are present). Params are only
@@ -93,6 +98,10 @@ const DEFAULTS: AppState = {
   revealLoop: true,
   revealPlaying: true,
   revealToken: 0,
+  buildSpeed: 1,
+  buildLoop: true,
+  buildPlaying: true,
+  buildToken: 0,
 };
 
 const DEFAULT_GRADIENT_KEY = serializeGradient(DEFAULTS.gradient);
@@ -106,7 +115,9 @@ function readStateFromUrl(): AppState {
 
   const rawMode = params.get("mode");
   const mode: ViewMode =
-    rawMode === "3d" || rawMode === "reveal" ? rawMode : DEFAULTS.mode;
+    rawMode === "3d" || rawMode === "reveal" || rawMode === "build"
+      ? rawMode
+      : DEFAULTS.mode;
 
   const rawPattern = params.get("pattern") ?? "";
   const pattern: PatternId = isPattern(rawPattern) ? rawPattern : DEFAULTS.pattern;
@@ -225,6 +236,13 @@ function readStateFromUrl(): AppState {
     ? params.get("rloop") === "1"
     : DEFAULTS.revealLoop;
 
+  const buildSpeed = params.has("bspeed")
+    ? Math.max(0.25, Math.min(3, Number(params.get("bspeed")) / 100))
+    : DEFAULTS.buildSpeed;
+  const buildLoop = params.has("bloop")
+    ? params.get("bloop") === "1"
+    : DEFAULTS.buildLoop;
+
   return {
     mode,
     pattern,
@@ -259,6 +277,10 @@ function readStateFromUrl(): AppState {
     revealLoop,
     revealPlaying: DEFAULTS.revealPlaying,
     revealToken: 0,
+    buildSpeed,
+    buildLoop,
+    buildPlaying: DEFAULTS.buildPlaying,
+    buildToken: 0,
   };
 }
 
@@ -347,6 +369,12 @@ function writeStateToUrl(state: AppState) {
   }
   if (state.revealLoop !== DEFAULTS.revealLoop) {
     params.set("rloop", state.revealLoop ? "1" : "0");
+  }
+  if (state.buildSpeed !== DEFAULTS.buildSpeed) {
+    params.set("bspeed", String(Math.round(state.buildSpeed * 100)));
+  }
+  if (state.buildLoop !== DEFAULTS.buildLoop) {
+    params.set("bloop", state.buildLoop ? "1" : "0");
   }
   const query = params.toString();
   const url = query
@@ -442,11 +470,50 @@ export default function App() {
       revealPlaying: true,
       revealToken: s.revealToken + 1,
     }));
+  const setBuildSpeed = (buildSpeed: number) =>
+    setState((s) => ({
+      ...s,
+      buildSpeed: Number.isFinite(buildSpeed)
+        ? Math.max(0.25, Math.min(3, buildSpeed))
+        : DEFAULTS.buildSpeed,
+    }));
+  const setBuildLoop = (buildLoop: boolean) =>
+    setState((s) => ({ ...s, buildLoop }));
+  const setBuildPlaying = (buildPlaying: boolean) =>
+    setState((s) => ({ ...s, buildPlaying }));
+  const replayBuild = () =>
+    setState((s) => ({
+      ...s,
+      buildPlaying: true,
+      buildToken: s.buildToken + 1,
+    }));
 
   return (
     <div className="app">
       <main className="app__stage">
-        {state.mode === "reveal" ? (
+        {state.mode === "build" ? (
+          <BuildCanvas
+            pattern={state.pattern}
+            on={state.on}
+            speed={state.buildSpeed}
+            loop={state.buildLoop}
+            playing={state.buildPlaying}
+            playToken={state.buildToken}
+            gradient={state.gradient}
+            lightIntensity={state.lightIntensity}
+            offColor={state.offColor}
+            opaqueOff={state.opaqueOff}
+            showConnectors={state.showConnectors}
+            tierRings={state.tierRings}
+            tierGaps={state.tierGaps}
+            tierBands={state.tierBands}
+            tierLabels={state.tierLabels}
+            tierValues={state.tierValues}
+            tierColor={state.tierColor}
+            animate={state.animate}
+            motionSpeed={state.motionSpeed}
+          />
+        ) : state.mode === "reveal" ? (
           <RevealCanvas
             pattern={state.pattern}
             on={state.on}
@@ -548,6 +615,9 @@ export default function App() {
         revealOrder={state.revealOrder}
         revealLoop={state.revealLoop}
         revealPlaying={state.revealPlaying}
+        buildSpeed={state.buildSpeed}
+        buildLoop={state.buildLoop}
+        buildPlaying={state.buildPlaying}
         onModeChange={setMode}
         onPatternChange={setPattern}
         onStageChange={setStage}
@@ -581,6 +651,10 @@ export default function App() {
         onRevealLoopChange={setRevealLoop}
         onRevealPlayingChange={setRevealPlaying}
         onReplayReveal={replayReveal}
+        onBuildSpeedChange={setBuildSpeed}
+        onBuildLoopChange={setBuildLoop}
+        onBuildPlayingChange={setBuildPlaying}
+        onReplayBuild={replayBuild}
       />
     </div>
   );
